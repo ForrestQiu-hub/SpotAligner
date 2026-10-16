@@ -1,81 +1,76 @@
-﻿# Spot Aligner
+# Spot Aligner
 
-面向古典录音的**点话筒对齐与摆位**插件,Windows x64 VST3,免费软件(GPLv3)。
+A spot microphone **aligner and placer** for classical recording. Windows x64 VST3, free software (GPLv3).
 
-**下载**:[SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip) · [全部版本](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **反馈**:qiuzhenyan4135@163.com
-
----
-
-## 简介
-
-古典录音里,主话筒对负责整体,点话筒负责清晰度与临场感。把点话筒加进来时,通常只有两个旋钮可用:电平和声像。可**一支点话筒不是一个声像旋钮** —— 它在房间里本来就有确定的位置:离主话筒多远、在哪个角度上。
-
-Spot Aligner 把这个位置算出来并施加于信号:
-
-* 按声源到各支主话筒的距离与声速算出**对齐延时**,让点话筒与主话筒在时间上对好;
-* 按主话筒制式(AB / ORTF / XY / NOS / DIN / Decca Tree)算出**左右两路各自应收到的延时与电平**,把点话筒摆进它在房间里真正所在的位置。
-
-面板同时把几何讲清楚:阵列的覆盖角、左右两路的延时与电平、以及阵列是否已偏离该制式的标准几何。免费发布 —— 这件事值得被做出来,而它太小众,没人会为它开公司。
-
-## 原理
-
-**① 为什么必须先对齐。** 点话筒离乐器近(0.5–3 m),主话筒远(5–15 m),所以点话筒的信号**先天早到**。按听觉的第一波前定律,两者间隔超过约 1 毫秒时**方向由先到达的一方决定** —— 乐器的声像于是被点话筒拽过去。对齐延时把点话筒推到与主话筒之后同时到达,使两者重新融合,方向仲裁权回到主话筒手里。
-
-**② 为什么左右要用不同的延时与电平。** 主话筒制式决定了这一对靠什么成像:AB 与德卡树靠**时间差**,XY 靠**电平差**,ORTF / NOS / DIN 两者兼有。点话筒要落进同一个像场,就必须复制同一套线索,所以插件按几何算出左右各自的延时与电平,而不是让用户拧一个与几何无关的旋钮。
-
-**③ 德卡树的中置话筒真的参与运算。** 它不是"一个很大的 AB":中置话筒有自己的延时线,等量送入左右,并因此稀释左右线索 —— 同样的左右间距,加了中置之后覆盖角变宽。
-
-**④ 如实说明的两条边界。** 其一,点话筒靠近声源时乐器**不能近似为点声源**,几何给出的对齐值只能是一个代表性近似;严格成立的其实是主话筒那一侧(远场)。其二,左右只要存在时间差 Δt,这一轨在单声道折叠下就有梳状零点 f = 1/(2Δt) —— 这是时间差成像的固有代价,AB 主话筒对本身也有。
-
-**⑤ 左右时间差是可选。** 默认给点话筒轨道加上左右时间差(按几何把它摆到该在的位置);把面板上的 **L/R Time Difference** 关掉(Off),两路就改用**同一个延时** —— 取靠点话筒较近的那一支主话筒的延时,点话筒落在正中线上时取左边那支 —— 也就是传统做法:**左对左、右对右、中线对左**。此时这一对点话筒自带的时间差完全不被触碰,声像仍由插件按几何给出的左右电平决定。由于 AB 与德卡树本来就靠时间差成像,它们的物理电平差往往不到 1 dB,所以关闭时插件会把时间差所承担的摆位信息按模型自身的等价关系(**1.5 ms ↔ 18 dB**)折算成电平差 —— 例如几何给出 0.92 ms 的左右时间差时,电平差会从约 0.25 dB 变为约 11 dB,点话筒依旧落在它该在的角度上;XY 这类重合制式本来没有时间差,折算为零,行为完全不变。
-
-**⑤ 点话筒自身的指向性不再套一遍。** 那支话筒的指向性已经录在它的信号里,再施加一次就是重复计算;面板只把它写成一句提示(该制式下对齐值不值得、梳状风险有多大),而不是滤波器。
-
-模型并非自创:时间差与电平差的等价关系、18 dB / 1.5 ms 这两个常数、以及覆盖角算法,都来自德国录音学派的讲义与实践文献。完整的文献梳理与证据强度分级见仓库内的[文献综述](文献综述-点话筒声像定位与时间差-v2.docx),全部开发与修正过程见[迭代报告](ITERATION-REPORT.txt)。
-
-## 要求
-
-* **Windows** 10 或 11,64 位;任何 VST3 宿主(REAPER、Nuendo、Cubase、Studio One、Bitwig、WaveLab 等)。
-* **必须插在立体声轨道上。** 插件承载"一个单声道对象"(一支点话筒)并把它摆进立体声像场,两个声道都会用到:输入两路先相加成这一个对象,再按几何分配左右。轨道给不出两个声道时插件**不做任何处理**(对象原样通过)并在面板提示;显示 `Track output: 2 channels` 就说明轨道是对的。
-* **Pro Tools** 只加载 AAX,且拒绝未签名的 AAX。用包装宿主(Blue Cat PatchWork、DDMF Metaplugin,或免费的 Modalics Plugin Buddy)即可在 Pro Tools 里运行本插件。macOS / AU 版本在计划中 —— AU 不需要任何签名,只差一台 Mac。
-* 未做代码签名,首次扫描时 Windows 可能提示一次:选"更多信息"→"仍要运行"。
-
-## 用法
-
-**安装**:双击 `Install.bat`(自动判断权限:能写 Program Files 就装给所有用户,否则装给当前用户),或把 `SpotAligner.vst3` 文件夹复制到:
-
-```
-C:\Program Files\Common Files\VST3\        所有用户(需管理员)
-%LOCALAPPDATA%\Programs\Common\VST3\       仅当前用户
-```
-
-然后让宿主重新扫描插件;列表里显示为 **Spot Aligner**,厂商 **Forrest's Plug-ins**。
-
-**基本用法**:
-
-1. **只给点话筒轨道加这个插件**,不要加在主话筒上。
-2. 填 **Distance / Angle / Height** —— 声源相对于主话筒阵列的距离、水平角度与高度。
-3. 选 **Format**(主话筒制式),插件载入该制式的间距、张开角与指向性;这三项随后都可以改,改离标准值后面板会标出 `edited`。
-4. **DAW 的声像旋钮请留在中间。** 插件已按几何把点话筒摆在它该在的位置,再拧一次宿主声像就是摆位两次。
-5. **建议打开宿主的单声道监听按钮**检查一遍。左右存在时间差 Δt 时,单声道折叠会有梳状零点 f = 1/(2Δt),这是时间差成像的固有性质,不是故障;用它判断点话筒电平是否给多了。
-
-**不想引入左右时间差时**:把面板上的 **L/R Time Difference** 选成 **Off**。此时左右两路使用同一个延时(靠哪边取哪支主话筒,中线取左边),这一对自己原有的时间差完全不被触碰。
-
-**点话筒本身是一对话筒时**(例如钢琴的 AB 对):
-
-* 两支话筒各自一条轨道、各挂一个插件实例,**参数填成完全相同**,动点(角度)取这一对的**中点**;
-* 这样插件只做"把整对有宽度的声源平移到中点位置",这一对自己的时间差**完全不被触碰** —— 宽度由这对话筒自己提供,位置由插件提供,两者互不污染;
-* 两轨都要让插件看到立体声总线,否则插件会判定为单声道轨道而直通。
-
-**卸载**:删掉 `SpotAligner.vst3` 文件夹即可。所有设置随工程保存,旧版本工程照常打开。
+**Download:** [SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip) · [all releases](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **Feedback:** qiuzhenyan4135@163.com
+**中文说明:** [README.zh-CN.md](README.zh-CN.md) · The package also carries the README in English, Chinese, German, French and Japanese.
 
 ---
 
-从源码构建需要 CMake 3.14+、Visual Studio 2022 或更新版本、以及 [VST 3 SDK](https://github.com/steinbergmedia/vst3sdk) 3.8.x;物理部分位于四个无依赖头文件中(`spotPanner.h`、`formatRules.h`、`panoramaGeometry.h`、`soundSpeed.h`),全部规则由不需要宿主与界面的无头测试覆盖。
+## Introduction
 
-构建使用 VST 3 SDK 3.8.1。VST 是 Steinberg Media Technologies GmbH 的商标。
+In classical recording the main pair carries the whole picture while spot microphones add definition and presence. When a spot is brought in there are usually only two knobs: level and pan. But **a spot microphone is not a pan knob** - it already has a definite place in the room: a distance from the main array and an angle.
 
-**作者**:Zhenyan Qiu,南开大学物理科学学院 · 许可:[GPLv3](LICENSE)
+Spot Aligner works that place out and applies it to the signal:
 
+* an **alignment delay** from the distance to each main microphone and the speed of sound, so the spot lines up with the main pair in time;
+* from the **technique of the array** (AB / ORTF / XY / NOS / DIN / Decca Tree), the delay and the level each side should receive, so the spot lands where it really was in the room.
 
-⚠️ **此时 Angle 仍是几何输入,不是自由声像旋钮**:改它同时会改距离、离轴角与参照话筒;它的电平差由阵列自己的成像规律算出(间距型大致按 sin θ,重合型由指向性决定),与宿主的 pan law 不是一回事。宿主的 pan 仍然请留在中间。
+The panel shows the recording angle of the array, both delays and both levels, and marks the array as `edited` once it no longer matches the geometry of its technique. It is free because the thing is worth doing and too small a niche for anyone to build a company around.
+
+## Principle
+
+**1. Why the alignment comes first.** The spot is close to the instrument (0.5-3 m) and the main pair is far away (5-15 m), so the spot arrives early. Once two copies of a sound are more than about 1 ms apart, the direction is decided by whichever arrived first, and the spot pulls the image to itself. The alignment delay puts the spot level with the main pair, lets the two fuse again, and hands the decision back to the main pair.
+
+**2. Why the two sides get different delays and levels.** The technique decides how the pair images: AB and Decca Tree by **time difference**, XY by **level difference**, ORTF / NOS / DIN by both. A spot that is to sit in the same image has to carry the same cues, so the plug-in works out both from the geometry instead of leaving the user with a knob that has nothing to do with the room.
+
+**3. A Decca Tree really has its centre microphone.** It is not "a wide AB": the centre microphone has its own delay line, is fed equally to both sides, and therefore dilutes the outer pair's cues - the same spacing covers a wider angle once it is there.
+
+**4. Two boundaries, stated honestly.** Close to the source the instrument cannot be treated as a point, so a geometry-derived alignment is a representative approximation; what is exact is the main array's side, which is far away. And any left/right time difference dt gives this track comb nulls in mono at **f = 1/(2 dt)** - the inherent price of time-difference imaging, which an AB main pair pays as well.
+
+**5. The spot's own polar pattern is not applied again.** That microphone's pattern is already in its recording; applying it a second time would count it twice. It is a note in the panel, not a filter.
+
+The model is not invented here: the equivalence of time and level differences, the 18 dB / 1.5 ms constants and the recording-angle calculation come from the German recording school. The full literature review with its evidence grading is kept in the repository.
+
+## Requirements
+
+* **Windows** 10 or 11, 64 bit; any VST3 host (REAPER, Nuendo, Cubase, Studio One, Bitwig, WaveLab).
+* **IT MUST GO ON A STEREO TRACK.** The plug-in carries one mono object - a spot microphone - and places it in the stereo image, so both channels are used: the two input channels are summed into that one object, which is then distributed by the geometry. When the track cannot carry two channels nothing is processed (the object passes through) and the panel says so; `Track output: 2 channels` means the track is right.
+* **Pro Tools** loads AAX only and refuses unsigned AAX, so use a wrapper host (Blue Cat PatchWork, DDMF Metaplugin, or the free Modalics Plugin Buddy) to run this VST3 inside it. A macOS / AU build is planned - the AU wrappers ship with the VST 3 SDK and need no code signing.
+* The files are not code signed, so Windows may ask once when the plug-in is first scanned: choose "More information" and "Run anyway".
+
+## How to use it
+
+**Install:** run `Install.bat` (it picks the right folder for the rights it has), or copy the `SpotAligner.vst3` folder into
+
+```
+C:\Program Files\Common Files\VST3\        all users, administrator
+%LOCALAPPDATA%\Programs\Common\VST3\       this user only
+```
+
+Then let the host scan for plug-ins. It appears as **Spot Aligner** by **Forrest's Plug-ins**.
+
+1. Put it on the **spot track only**, never on the main pair.
+2. Enter **Distance / Angle / Height** - where the source sits relative to the main array.
+3. Choose **Format**; the plug-in loads that technique's spacing, aiming and polar pattern. All three stay editable afterwards, and the panel marks the array `edited` once they leave the standard values.
+4. **Leave the host's pan centred.** The plug-in has already placed the spot by geometry; panning it again places it twice.
+5. **Check in mono.** With a left/right time difference there are comb nulls at f = 1/(2 dt); that is inherent to time-difference imaging, and it is a good way to judge whether the spot is set too loud.
+
+**The L/R Time Difference switch.** On (the default) the two channels are delayed to their own microphone, so the object is placed by the geometry. Off, both channels share **one** delay - that of the main microphone on the side the object is nearer, and the left one when it sits on the centre line: the traditional way, left to left, right to right, the centre line to the left. Because AB and Decca Tree image by time difference while their physical level difference is usually under 1 dB, switching it off converts the placement the time difference carried into a level difference at the model's own rate (1.5 ms to 18 dB) - 0.92 ms becomes about 11 dB - so the object still lands at the angle the geometry gives, and the pair's own time difference is left untouched.
+
+Note that with it off, **Angle is still a geometry input, not a free pan control**: changing it also moves the distance, the off-axis angle and the reference microphone, and the level difference follows the array's own imaging law (roughly the sine of the angle for a spaced pair, the polar patterns for a coincident one) rather than a host pan law. Keep the host's pan centred.
+
+**When the spot is itself a pair** (a piano AB pair, for instance):
+
+* one track and one plug-in instance per microphone, with **identical settings**, and the point (the angle) taken at the **midpoint** of the two;
+* the plug-in then only shifts a source that has width to the position of that midpoint, and the pair's own time difference is not touched at all - the width comes from the pair, the position from the plug-in;
+* both tracks must let the plug-in see a stereo bus, otherwise it treats them as mono and passes through.
+
+**Uninstall:** delete the `SpotAligner.vst3` folder. Settings are stored with the project, and older projects keep working, as do state versions from the first release onwards.
+
+---
+
+Built with the VST 3 SDK 3.8.1. VST is a trademark of Steinberg Media Technologies GmbH.
+From source: CMake 3.14+ and Visual Studio 2022 or newer; the physics lives in four dependency-free headers (`spotPanner.h`, `formatRules.h`, `panoramaGeometry.h`, `soundSpeed.h`) and every rule in them is covered by headless tests that need neither a host nor a GUI.
+
+**Author:** Zhenyan Qiu, School of Physics, Nankai University · **Licence:** [GPLv3](LICENSE) · Development history: [ITERATION-REPORT.txt](ITERATION-REPORT.txt)
