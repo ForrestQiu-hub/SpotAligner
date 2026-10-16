@@ -1,0 +1,21 @@
+# build trees, they hold absolute paths and are large
+build/
+*/build/
+dist/
+*/dist/
+
+# the packaged downloads belong in a release, not in the repository
+*.zip
+*.exe
+
+# scaffolding used while developing on this machine
+.dsh-acl-repair/
+image/
+
+# editors and systems
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+desktop.ini

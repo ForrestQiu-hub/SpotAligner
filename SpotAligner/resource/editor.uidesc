@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vstgui-ui-description version="1">
+	<fonts>
+		<!-- The title face. Michelangelo is not installed on this machine; when it
+		     is, change the family below to "Michelangelo" (or whatever name its
+		     installer registers) and nothing else has to move. -->
+		<font name="Title" font="Noto Sans SC" size="16"/>
+		<font name="Label" font="Arial" size="12"/>
+		<font name="Value" font="Arial" size="13"/>
+		<font name="Note" font="Arial" size="11"/>
+	</fonts>
+	<!-- VSTGUI colour order is #RRGGBBAA (alpha last) -->
+	<colors>
+		<color name="Bg" rgba="#23262BFF"/>
+		<color name="Panel" rgba="#2E3238FF"/>
+		<color name="Field" rgba="#15181CFF"/>
+		<color name="FieldReadOnly" rgba="#262B32FF"/>
+		<color name="Line" rgba="#4A5058FF"/>
+		<color name="Text" rgba="#E8EAEDFF"/>
+		<color name="Dim" rgba="#9AA0A6FF"/>
+		<color name="Accent" rgba="#E8C05AFF"/>
+		<color name="CheckFill" rgba="#15181CFF"/>
+		<color name="CheckMark" rgba="#E8C05AFF"/>
+	</colors>
+	<!-- Every control is bound through this table; names are free-form keys. -->
+	<control-tags>
+		<control-tag name="Bypass" tag="0"/>
+		<control-tag name="Distance" tag="1"/>
+		<control-tag name="SpeedMode" tag="2"/>
+		<control-tag name="SpeedOfSound" tag="3"/>
+		<control-tag name="Temperature" tag="4"/>
+		<control-tag name="Humidity" tag="5"/>
+		<control-tag name="Pressure" tag="6"/>
+		<control-tag name="SpeedInUse" tag="7"/>
+		<control-tag name="DelayInUse" tag="8"/>
+		<control-tag name="SpotAngle" tag="9"/>
+		<control-tag name="MainFormat" tag="10"/>
+		<control-tag name="AbSpacing" tag="11"/>
+		<control-tag name="CentreDistance" tag="12"/>
+		<control-tag name="SpotPattern" tag="13"/>
+		<control-tag name="SourceHeight" tag="14"/>
+		<control-tag name="MainHeight" tag="15"/>
+		<control-tag name="TrackChannels" tag="16"/>
+		<control-tag name="DelayLeftMs" tag="17"/>
+		<control-tag name="DelayRightMs" tag="18"/>
+		<control-tag name="LevelLeftDb" tag="19"/>
+		<control-tag name="LevelRightDb" tag="20"/>
+		<control-tag name="RecordingAngle" tag="21"/>
+		<control-tag name="ImagePosition" tag="22"/>
+		<control-tag name="MainHalfAngle" tag="23"/>
+		<control-tag name="MainPattern" tag="24"/>
+		<control-tag name="SpotPatternNote" tag="25"/>
+		<control-tag name="ArrayEdited" tag="26"/>
+		<control-tag name="MeterLeftDb" tag="27"/>
+		<control-tag name="SpotAzimuth" tag="29"/>
+		<control-tag name="SpotDistance" tag="30"/>
+		<control-tag name="MeterRightDb" tag="28"/>
+	</control-tags>
+	<template background-color="Bg" background-color-draw-style="filled" class="CViewContainer" mouse-enabled="true" name="view" opacity="1" origin="0, 0" size="688, 336" transparent="false" wants-focus="false">
+
+		<!-- ============ left column: the parameters ============ -->
+		<view class="CTextLabel" font="Title" font-color="Accent" origin="16, 8" size="390, 24" text-alignment="center" title="Spot Aligner" transparent="true"/>
+
+		<!-- bypass: checked means the object is passed through undelayed. It sits
+		     at the top right of the title, out of the way of everything else. -->
+		<view class="CTextLabel" font="Label" font-color="Text" origin="308, 11" size="60, 18" text-alignment="right" title="Bypass" transparent="true"/>
+		<view class="CCheckBox" boxfill-color="CheckFill" boxframe-color="Line" checkmark-color="CheckMark" control-tag="Bypass" default-value="0" max-value="1" min-value="0" origin="374, 12" size="18, 18" value="0"/>
+
+		<!-- distance, the height of the object, and the delay they result in -->
+		<view class="CViewContainer" background-color="Panel" background-color-draw-style="filled" frame-color="Line" frame-width="1" origin="16, 74" size="390, 40" transparent="false"/>
+		<view class="CTextLabel" font="Label" font-color="Text" origin="28, 86" size="52, 18" title="Distance" transparent="true"/>
+		<view class="CTextEdit" back-color="Field" control-tag="Distance" font="Value" font-color="Text" frame-color="Line" origin="84, 82" size="76, 24"/>
+		<view class="CTextLabel" font="Label" font-color="Text" origin="168, 86" size="42, 18" title="Angle" transparent="true"/>
+		<view class="CTextEdit" back-color="Field" control-tag="SpotAngle" font="Value" font-color="Text" frame-color="Line" origin="212, 82" size="64, 24"/>
+		<view class="CTextLabel" font="Label" font-color="Text" origin="284, 86" size="42, 18" title="Height" transparent="true"/>
+		<view class="CTextEdit" back-color="Field" control-tag="SourceHeight" font="Value" font-color="Text" frame-color="Line" origin="328, 82" size="62, 24"/>
+
+		<!-- where the speed of sound comes from -->
+		<view class="CTextLabel" font="Label" font-color="Text" origin="16, 46" size="110, 18" title="Speed source" transparent="true"/>
+		<view class="COptionMenu" back-color="Field" control-tag="SpeedMode" font="Value" font-color="Text" frame-color="Line" origin="132, 42" size="274, 24" value="0"/>
+
+		<!-- speed of sound: the group that is not selected is hidden -->
+		<view class="SpeedSourceView" origin="0, 112" size="688, 120" transparent="true">
+			<view class="CViewContainer" origin="0, 0" size="406, 30" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="16, 6" size="110, 18" title="Speed of sound" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="SpeedOfSound" font="Value" font-color="Text" frame-color="Line" origin="132, 3" size="274, 24"/>
+			</view>
+
+			<view class="CViewContainer" origin="0, 36" size="406, 52" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="16, 4" size="110, 16" title="Temperature" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="Temperature" font="Value" font-color="Text" frame-color="Line" origin="16, 20" size="118, 24"/>
+				<view class="CTextLabel" font="Label" font-color="Text" origin="143, 4" size="110, 16" title="Humidity" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="Humidity" font="Value" font-color="Text" frame-color="Line" origin="143, 20" size="118, 24"/>
+				<view class="CTextLabel" font="Label" font-color="Text" origin="270, 4" size="110, 16" title="Air pressure" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="Pressure" font="Value" font-color="Text" frame-color="Line" origin="270, 20" size="118, 24"/>
+			</view>
+
+			<view class="CTextLabel" font="Label" font-color="Text" origin="16, 96" size="110, 18" title="Speed in use" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="SpeedInUse" font="Value" font-color="Accent" frame-color="Line" origin="132, 92" size="274, 24"/>
+		</view>
+
+		<!-- the numbers behind the display: recording angle, where the object
+		     lands in the image, the delay of each side and the level of each
+		     side. The three labels keep a fixed order, StereoInfoView.cpp relies
+		     on it and uicheck.py checks it. The meters are drawn by the view. -->
+		<!-- The numbers behind the display: the recording angle of the array,
+		     and on one line the delay and the level of each side. They are labels
+		     bound to parameters the controller fills in, so nothing here has to
+		     be read back or drawn. -->
+		<view class="CViewContainer" origin="16, 240" size="390, 74" transparent="true">
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="0, 2" size="62, 18" title="Coverage" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="RecordingAngle" font="Value" font-color="Accent" frame-color="Line" origin="66, 0" size="110, 20"/>
+
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="0, 26" size="34, 18" title="Delay" transparent="true"/>
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="38, 26" size="10, 18" title="L" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="DelayLeftMs" font="Value" font-color="Text" frame-color="Line" origin="52, 24" size="64, 20"/>
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="120, 26" size="10, 18" title="R" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="DelayRightMs" font="Value" font-color="Text" frame-color="Line" origin="132, 24" size="64, 20"/>
+
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="204, 26" size="34, 18" title="Level" transparent="true"/>
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="242, 26" size="10, 18" title="L" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="LevelLeftDb" font="Value" font-color="Text" frame-color="Line" origin="256, 24" size="58, 20"/>
+			<view class="CTextLabel" font="Label" font-color="Dim" origin="318, 26" size="10, 18" title="R" transparent="true"/>
+			<view class="CTextLabel" back-color="FieldReadOnly" control-tag="LevelRightDb" font="Value" font-color="Text" frame-color="Line" origin="330, 24" size="58, 20"/>
+
+			<view class="CTextLabel" control-tag="TrackChannels" font="Note" font-color="Dim" origin="0, 50" size="290, 16" transparent="true"/>
+		</view>
+
+		<!-- Shown only when the track cannot carry the stereo image. It is
+		     declared after the info view, and as large as it, so that it covers
+		     the numbers while it has something to say. TrackStatusView.cpp
+		     relies on the order of the three labels, uicheck.py checks it. -->
+		<view class="TrackStatusView" mouse-enabled="false" origin="16, 240" size="390, 74" transparent="true">
+
+			<view class="CTextLabel" font="Value" font-color="Accent" origin="14, 10" size="362, 20" title="This track cannot carry a stereo image" transparent="true"/>
+			<view class="CTextLabel" font="Note" font-color="Text" origin="14, 32" size="362, 16" title="Set the plug-in's channel configuration to stereo in the host." transparent="true"/>
+			<view class="CTextLabel" font="Note" font-color="Dim" origin="14, 50" size="362, 16" title="Until then the object is passed through untouched." transparent="true"/>
+		</view>
+
+		<!-- ============ right column: the display ============ -->
+		<view class="PanoramaView" origin="422, 16" size="250, 104"/>
+		<!-- Not seen, not clickable: these two carry the object's place in the image to
+		     the dome display, which reads their text. Nothing may read an edit field
+		     that can be mid typing. -->
+		<view class="CTextLabel" control-tag="SpotAzimuth" font="Value" origin="408, 320" size="2, 2" transparent="true"/>
+		<view class="CTextLabel" control-tag="SpotDistance" font="Value" origin="408, 324" size="2, 2" transparent="true"/>
+
+		<!-- main microphone format, and the geometry only some formats need.
+		     FormatOptionsView shows and hides the rows below. Each row keeps a
+		     fixed order: caption label, bound field, and for the spacing row a
+		     second label that shows the distance the technique is defined with.
+		     uicheck.py verifies that order. -->
+		<view class="FormatOptionsView" background-color="Panel" background-color-draw-style="filled" frame-color="Line" frame-width="1" origin="422, 128" size="250, 200" transparent="false">
+			<view class="CTextLabel" font="Note" font-color="Dim" origin="12, 6" size="226, 14" title="MAIN MICROPHONE" transparent="true"/>
+			<view class="CTextLabel" font="Label" font-color="Text" origin="12, 26" size="70, 18" title="Format" transparent="true"/>
+			<view class="COptionMenu" back-color="Field" control-tag="MainFormat" font="Value" font-color="Text" frame-color="Line" origin="92, 22" size="106, 24" value="0"/>
+			<!-- says so when the array is no longer the technique it is named after -->
+			<view class="CTextLabel" control-tag="ArrayEdited" font="Note" font-color="Accent" origin="202, 26" size="42, 16" transparent="true"/>
+
+			<!-- What the array is, as opposed to what it is called: a format
+			     fills these in, and they can be changed afterwards. The two rows
+			     the view can hide - the spacing of a coincident array and the
+			     centre microphone of anything but a tree - come last, so that
+			     hiding one leaves the space at the bottom of the panel instead
+			     of a hole in the middle of it. -->
+			<view class="CViewContainer" origin="0, 52" size="250, 28" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="12, 6" size="70, 18" title="Aimed at" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="MainHalfAngle" font="Value" font-color="Text" frame-color="Line" origin="92, 2" size="146, 24"/>
+			</view>
+
+			<view class="CViewContainer" origin="0, 80" size="250, 28" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="12, 6" size="70, 18" title="Pattern" transparent="true"/>
+				<view class="COptionMenu" back-color="Field" control-tag="MainPattern" font="Value" font-color="Text" frame-color="Line" origin="92, 2" size="146, 24" value="0"/>
+			</view>
+
+			<view class="CTextLabel" font="Label" font-color="Text" origin="12, 114" size="70, 18" title="Height" transparent="true"/>
+			<view class="CTextEdit" back-color="Field" control-tag="MainHeight" font="Value" font-color="Text" frame-color="Line" origin="92, 110" size="146, 24"/>
+
+			<!-- needed by AB, Decca Tree, ORTF, NOS and DIN -->
+			<view class="CViewContainer" origin="0, 140" size="250, 28" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="12, 6" size="70, 18" title="Spacing" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="AbSpacing" font="Value" font-color="Text" frame-color="Line" origin="92, 2" size="146, 24"/>
+				<view class="CTextLabel" back-color="FieldReadOnly" font="Value" font-color="Text" frame-color="Line" origin="92, 2" size="146, 24" title="-"/>
+			</view>
+
+			<!-- needed by Decca Tree only -->
+			<view class="CViewContainer" origin="0, 168" size="250, 28" transparent="true">
+				<view class="CTextLabel" font="Label" font-color="Text" origin="12, 6" size="70, 18" title="Centre" transparent="true"/>
+				<view class="CTextEdit" back-color="Field" control-tag="CentreDistance" font="Value" font-color="Text" frame-color="Line" origin="92, 2" size="146, 24"/>
+			</view>
+
+		</view>
+	</template>
+	<custom>
+		<attributes name="FocusDrawing"/>
+		<attributes Path="D:/VST3 Programming/SpotAligner/SpotAligner/resource/editor.uidesc" name="VST3Editor"/>
+		<attributes Grids="1x 1,5x 5,10x 10,12x 12,15x 15" name="UIGridController"/>
+		<attributes SelectedTemplate="view" name="UITemplateController"/>
+		<attributes EditViewScale="1" EditorSize="0, 0, 688, 336" Version="1" name="UIEditController"/>
+		<attributes name="UIAttributesController"/>
+		<attributes SelectedRow="7" name="UIViewCreatorDataSource"/>
+	</custom>
+	<bitmaps/>
+</vstgui-ui-description>
