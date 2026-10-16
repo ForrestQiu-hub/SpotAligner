@@ -536,3 +536,12 @@ Every change appends one entry to this same report, with its date and what chang
     numbering and the state version - so existing projects still load. The state version stays V9.
   · Cost: the build tree had to be recreated because absolute paths live in its cache; the install
     junction now points at the new path, and the validator, contract and layout checks all pass.
+2026-10-16 · 1.0.0 · 修订五(使用说明)
+  · 五份 README 增加一条关键使用提示:【只给点话筒轨道添加】—— 这条是使用中最容易搞错的地方。
+  · 结尾增加:感谢 VST 让每个人都能做插件;主测试 DAW 为 REAPER;反馈邮箱 qiuzhenyan@163.com。
+  · 中文版按作者原文逐字排布,其余四语按同一意思翻译。
+  · 安装包重打,文件名不变,便于直接替换发布页上的附件。
+2026-10-16 · 1.0.0 · Revision 5 (how to use it)
+  · All five READMEs gained the note that matters most in practice: put it on the spot track only.
+  · Closing lines added: thanks to VST, tested mainly in REAPER, and the feedback address.
+  · The package was rebuilt under the same file name so that a release asset can simply be replaced.

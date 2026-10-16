@@ -7,6 +7,8 @@ Free software, GPLv3.
 > places it in the stereo image, so put it on a **stereo track**. (The two input
 > channels are summed into that one object.) On a mono track nothing is
 > processed: the object passes through and the panel says so.
+>
+> **Do this on the spot track only.**
 
 ## Download
 
@@ -81,6 +83,10 @@ would count it twice. It is a note in the panel, not a filter.
 `ITERATION-REPORT.txt` records the whole development in order: what each step
 did, why, and the root cause and fix of every mistake — 29 parameters, 47
 validator tests, contract and layout checks all passing.
+
+## Feedback
+
+Questions, corrections and suggestions: **qiuzhenyan@163.com**
 
 ## Credits
 
