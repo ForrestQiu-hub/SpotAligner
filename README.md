@@ -86,7 +86,7 @@ validator tests, contract and layout checks all passing.
 
 ## Feedback
 
-Questions, corrections and suggestions: **qiuzhenyan@163.com**
+Questions, corrections and suggestions: **qiuzhenyan4135@163.com**
 
 ## Credits
 
