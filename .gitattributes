@@ -1,2 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep this project's text files in LF wherever they are checked out, so that a
+# checkout on Windows does not rewrite them and fill the history with diffs that
+# only differ in invisible characters.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.zip binary

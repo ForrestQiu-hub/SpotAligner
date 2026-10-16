@@ -3,8 +3,6 @@
 A spot microphone aligner and placer for classical recording, as a VST3 plug-in.
 Free software, GPLv3.
 
-![the panel](docs/editor.png)
-
 > **It is a stereo effect.** It carries one mono object — a spot microphone — and
 > places it in the stereo image, so put it on a **stereo track**. (The two input
 > channels are summed into that one object.) On a mono track nothing is
@@ -12,9 +10,9 @@ Free software, GPLv3.
 
 ## Download
 
-**[SpotAligner-1.0.0-win64.zip](releases/latest)** — Windows 10/11, 64 bit, VST3.
+**[SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip)** — Windows 10/11, 64 bit, VST3.
 
-Unzip, run `Install.bat`, and let your host scan for plug-ins. A README is
+Or see [all releases](https://github.com/ForrestQiu-hub/SpotAligner/releases). Unzip, run `Install.bat`, and let your host scan for plug-ins. A README is
 included in English, Chinese, German, French and Japanese.
 
 ## What it does
