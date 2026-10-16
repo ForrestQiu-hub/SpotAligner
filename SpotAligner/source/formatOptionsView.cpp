@@ -89,20 +89,8 @@ CTextLabel* findLastLabel (CView* view)
 	Temporary: remove together with its call site once the UI is settled. */
 void writeDiagnostics (int format, bool spacing, bool centre, bool locked, bool foundSpacing, bool foundCentre)
 {
-	const char* temp = std::getenv ("TEMP");
-	if (!temp)
-		return;
-
-	std::string path (temp);
-	path += "\\spotaligner_format.log";
-
-	if (FILE* file = std::fopen (path.c_str (), "a"))
-	{
-		std::fprintf (file, "format=%d spacing=%d centre=%d locked=%d rows=%d%d\n", format, spacing ? 1 : 0,
-		              centre ? 1 : 0, locked ? 1 : 0, foundSpacing ? 1 : 0, foundCentre ? 1 : 0);
-		std::fclose (file);
+		// no file logging in a released build
 	}
-}
 
 //------------------------------------------------------------------------
 class FormatOptionsView : public CViewContainer

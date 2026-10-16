@@ -26,18 +26,7 @@ constexpr float kCentreGain = 0.70710678f;
 	test instructions. */
 bool forceMonoTrackForTesting ()
 {
-	const char* temp = std::getenv ("TEMP");
-	if (!temp)
-		return false;
-
-	std::string path (temp);
-	path += "\\spotaligner_force_mono";
-
-	if (FILE* file = std::fopen (path.c_str (), "r"))
-	{
-		std::fclose (file);
-		return true;
-	}
+	// no test hooks in a released build
 	return false;
 }
 
@@ -78,34 +67,8 @@ void writeBusDiagnostics (const std::string& host, const char* what,
                           Steinberg::Vst::SpeakerArrangement arrangementOut, Steinberg::int32 channels,
                           const Steinberg::Vst::ProcessData* data, bool forced)
 {
-	const char* temp = std::getenv ("TEMP");
-	if (!temp)
-		return;
-
-	std::string path (temp);
-	path += "\\spotaligner_bus.log";
-
-	if (FILE* file = std::fopen (path.c_str (), "a"))
-	{
-		std::fprintf (file, "[%-20s] %-22s arrIn=0x%08llx arrOut=0x%08llx channels=%d forced=%d", host.c_str (),
-		              what, static_cast<unsigned long long> (arrangementIn),
-		              static_cast<unsigned long long> (arrangementOut), static_cast<int> (channels),
-		              forced ? 1 : 0);
-
-		if (data)
-		{
-			std::fprintf (file, " numIn=%d chIn=%d numOut=%d chOut=%d buffers=%d",
-			              static_cast<int> (data->numInputs),
-			              data->numInputs > 0 ? static_cast<int> (data->inputs[0].numChannels) : -1,
-			              static_cast<int> (data->numOutputs),
-			              data->numOutputs > 0 ? static_cast<int> (data->outputs[0].numChannels) : -1,
-			              (data->numOutputs > 0 && data->outputs[0].channelBuffers32 != nullptr) ? 1 : 0);
-		}
-
-		std::fprintf (file, "\n");
-		std::fclose (file);
+		// no file logging in a released build
 	}
-}
 
 //------------------------------------------------------------------------
 // DelayLine
@@ -431,7 +394,12 @@ Panorama::ObjectPlacement SpotAlignerProcessor::currentObject () const
 //------------------------------------------------------------------------
 Panorama::StereoSetup SpotAlignerProcessor::currentStereoSetup () const
 {
-	return Panorama::stereoSetup (currentArray (), currentObject (), usableSpeedOfSound (parameterValues));
+	// The switch is a list: 0 = Off, one delay for the whole object (the traditional
+	// way); 1 = On, the two channels are delayed to their own microphone.
+	const bool channelTimeDifference = parameterValues[kParamDelayDifference] > 0.5;
+
+	return Panorama::stereoSetup (currentArray (), currentObject (), usableSpeedOfSound (parameterValues),
+	                              channelTimeDifference);
 }
 
 //------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-﻿//------------------------------------------------------------------------
+//------------------------------------------------------------------------
 // Copyright(c) 2026 Forrest's Plug-ins.
 //------------------------------------------------------------------------
 // The array as itself, and the note about the object microphone.
@@ -145,6 +145,20 @@ void addArrayParameters (ParameterContainer& container)
 		setListDefault (*pattern, Panorama::patternListIndexForA (Panorama::formatPatternA (Panorama::kFormatAB)),
 		                Panorama::kPatternCount);
 		container.addParameter (pattern);
+	}
+
+	// Whether the spot is given a left/right time difference. On, the two
+	// channels are delayed by the time the sound takes to reach their own
+	// microphone, so the object is placed by the geometry. Off, both channels
+	// get one and the same delay - the one of the microphone on the side the
+	// object is nearer, and the left one when it sits on the centre line.
+	{
+		auto* difference = new StringListParameter (STR16 ("L/R Time Difference"),
+		                                            kParamDelayDifference, nullptr,
+		                                            ParameterInfo::kCanAutomate | ParameterInfo::kIsList);
+		difference->appendString (STR16 ("Off"));		difference->appendString (STR16 ("On"));
+		setListDefault (*difference, 1, 2);
+		container.addParameter (difference);
 	}
 
 	// Saying that the array is no longer the technique it is named after. Two

@@ -74,6 +74,7 @@ enum SpotAlignerParams : Steinberg::Vst::ParamID
 	kParamMeterRightDb,   ///< read only: what the right side is putting out right now, dB
 	kParamSpotAzimuth,     ///< read only: where the object sits in the image, degrees
 	kParamSpotDistance,    ///< read only: how far the object is from the array, meters
+	kParamDelayDifference, ///< whether the spot gets an L/R time difference (list)
 
 	kParamCount
 };
@@ -94,7 +95,8 @@ constexpr Steinberg::uint32 kStateVersionV5 = 5;
 constexpr Steinberg::uint32 kStateVersionV6 = 6;
 constexpr Steinberg::uint32 kStateVersionV7 = 7;
 constexpr Steinberg::uint32 kStateVersionV8 = 8;
-constexpr Steinberg::uint32 kStateVersion = 9;
+constexpr Steinberg::uint32 kStateVersionV9 = 9;
+constexpr Steinberg::uint32 kStateVersion = 10;
 constexpr Steinberg::int32 kParamCountV1 = kParamComputedDelay + 1;
 constexpr Steinberg::int32 kParamCountV2 = kParamSpotPattern + 1;
 /** Version 3 ended before the read only track report, which is not a setting
@@ -112,6 +114,10 @@ constexpr Steinberg::int32 kParamCountV7 = kParamGeometryNote + 1;
 // parameters that carry the object's place in the image to the display, so that
 // the display never has to read a control that may be mid edit.
 constexpr Steinberg::int32 kParamCountV8 = kParamMeterRightDb + 1;
+// Version 10 added the switch that decides whether the spot is given an L/R
+// time difference. Off, the two channels get one and the same delay, taken
+// from the microphone on the side the object is nearer - the traditional way.
+constexpr Steinberg::int32 kParamCountV9 = kParamSpotDistance + 1;
 
 /** Number of parameter values a state of that version carries, or -1 when the
 	version is not known. */
@@ -133,6 +139,8 @@ inline Steinberg::int32 storedParamCount (Steinberg::uint32 version)
 		return kParamCountV7;
 	if (version == kStateVersionV8)
 		return kParamCountV8;
+	if (version == kStateVersionV9)
+		return kParamCountV9;
 	if (version == kStateVersion)
 		return kParamCount;
 	return -1;
@@ -283,6 +291,7 @@ inline const ParamRange* paramRanges ()
 	    {kMinLevelDb, kMaxLevelDb},                   // kParamMeterRightDb
 	    {kMinSpotAngleDegrees, kMaxSpotAngleDegrees},   // kParamSpotAzimuth (read only)
 	    {0.0, kMaxDistanceMeters},                      // kParamSpotDistance (read only)
+	    {0.0, 1.0},                                     // kParamDelayDifference (list: yes, no)
 	};
 	return ranges;
 }
@@ -324,6 +333,7 @@ inline const double* defaultNormalizedValues ()
 	    (kMinLevelDb - kMinLevelDb) / (kMaxLevelDb - kMinLevelDb), // kParamMeterRightDb
 	    0.0,                                                     // kParamSpotAzimuth (read only)
 	    0.0,                                                     // kParamSpotDistance (read only)
+	    1.0,                                                     // kParamDelayDifference (yes)
 	};
 	return defaults;
 }

@@ -142,9 +142,14 @@ inline double polarResponse (double patternA, double angleDegrees)
 	keeps the loudness it had whatever its position, and a source straight ahead
 	sits at equal power in both channels, which is where a centred mono source
 	belongs. */
-inline StereoSetup stereoSetup (const ArrayGeometry& array, const ObjectPlacement& object, double speedOfSound)
+inline StereoSetup stereoSetup (const ArrayGeometry& array, const ObjectPlacement& object, double speedOfSound,
+                                bool channelTimeDifference = true)
 {
 	StereoSetup setup;
+	// How much of the placement the time difference carries, converted to the
+	// level difference that means the same thing. Used when the time
+	// difference is switched off.
+	double extraLevelDb = 0.0;
 
 	if (speedOfSound <= 0.0)
 	{
@@ -155,6 +160,26 @@ inline StereoSetup stereoSetup (const ArrayGeometry& array, const ObjectPlacemen
 
 	setup.left.delaySeconds = distanceToMicrophone (array, object, true) / speedOfSound;
 	setup.right.delaySeconds = distanceToMicrophone (array, object, false) / speedOfSound;
+
+	if (!channelTimeDifference)
+	{
+		// The traditional way: one delay for the whole object, taken from the
+		// microphone on the side it is nearer, and from the left one when it sits
+		// on the centre line. Nothing then differs between the two channels, so
+		// whatever time difference the object arrived with is left untouched - it
+		// keeps the width it was recorded with, and the position is set by the
+		// level difference alone.
+		const double left = distanceToMicrophone (array, object, true);
+		const double right = distanceToMicrophone (array, object, false);
+		const double chosen = (right < left) ? setup.right.delaySeconds : setup.left.delaySeconds;
+
+		// One full shift of the image is 18 dB of level or 1.5 ms of time, so
+		// this is what the time difference was worth before it is taken away.
+		extraLevelDb = (setup.right.delaySeconds - setup.left.delaySeconds) * 1000.0 / 1.5 * 18.0;
+
+		setup.left.delaySeconds = chosen;
+		setup.right.delaySeconds = chosen;
+	}
 
 	// Each microphone hears the object at a level that falls with its own
 	// distance, on top of how far off its axis the object is. With a wide array
@@ -171,6 +196,28 @@ inline StereoSetup stereoSetup (const ArrayGeometry& array, const ObjectPlacemen
 	                  (leftDistance > 1.0e-6 ? leftDistance : 1.0e-6);
 	setup.right.gain = polarResponse (array.patternA, offAxisDegrees (array, object, false)) /
 	                   (rightDistance > 1.0e-6 ? rightDistance : 1.0e-6);
+
+	// With the time difference switched off the placement has to travel as
+	// level, or the object would hardly move at all: a wide pair at a working
+	// distance differs by a fraction of a dB between its two paths, while the
+	// image it makes comes from its time difference. The conversion above is
+	// added to that fraction, which is what makes the traditional single delay
+	// still place the object where the geometry says it is. A coincident array
+	// has no time difference to convert and is left exactly as it was.
+	if (extraLevelDb != 0.0)
+	{
+		const double leftGain = setup.left.gain > 1.0e-9 ? setup.left.gain : 1.0e-9;
+		const double rightGain = setup.right.gain > 1.0e-9 ? setup.right.gain : 1.0e-9;
+		const double wantedDb = 20.0 * std::log10 (leftGain / rightGain) + extraLevelDb;
+
+		// keep the pair's loudness: only the ratio between the sides changes
+		const double ratio = std::pow (10.0, wantedDb / 20.0);
+		const double powerIn = setup.left.gain * setup.left.gain + setup.right.gain * setup.right.gain;
+		const double scale = std::sqrt (powerIn / (ratio * ratio + 1.0));
+
+		setup.left.gain = scale * ratio;
+		setup.right.gain = scale;
+	}
 
 	// The centre microphone of a tree. It is pushed like the outer pair - the
 	// three faders of a tree stand together - so its weight is the mean of

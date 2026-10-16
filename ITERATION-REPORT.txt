@@ -1,552 +1,169 @@
-﻿Spot Aligner 迭代报告 / Iteration Report
-====================================
+Spot Aligner 迭代报告 / Iteration Report
+=========================================
 
-版本 / Version: 1.0.0 (Windows x64 VST3)
+版本 / Version: 1.0.0 · Windows x64 VST3
 厂商 / Vendor: Forrest's Plug-ins
+作者 / Author: Zhenyan Qiu,南开大学物理科学学院
 日期 / Date: 2026-10-16(最后更新 / last updated: 2026-10-16)
 
-本文件按【开发顺序】记录:第一步做了什么、为什么那样决定,以及每一个错误的根因与修法。
-时间线的依据是代码自身的注释、参数表的演进与各阶段留下的测试。
-每一条先中文后英文,便于对照。
-This file records what was built, the symptom and root cause of every correction, how it is
-verified, and what was deliberately left out. Each entry is given in Chinese first, then English.
+本文件按开发顺序记录:每一步做了什么、每一次错误的根因与修法、如何验证。
+The order of development, the root cause and fix of every mistake, and how it is verified.
 
+------------------------------------------------------------------------
+一、开发历程 / How it was built
+------------------------------------------------------------------------
 
-------------------------------------------------------------
+ 1. 距离对齐:一个单声道对象、一个距离、一个声速,输出 = 输入延迟「距离 ÷ 声速」。
+    Distance alignment: one mono object, one distance, one speed of sound.
 
-第一部分:开发历程 / Part 1: How it was built
-====================================
+ 2. 从延时器变成声像器:加入点话筒角度与主话筒制式 —— 点话筒的左右分配不是一个音量旋钮;
+    输入总线改成立体声,内部再把 L+R 相加成那一个对象。
+    From a delay to a panner: the spot angle and the array technique arrive; the input bus
+    becomes stereo and is summed internally into the one object.
 
-按开发顺序讲述每一步做了什么、为什么那样决定。依据是代码自身的注释、参数表的演进与各阶段
-留下的测试。
-In the order of development: what each step did and why it was decided that way, taken from the
-comments in the code, the evolution of the parameter list, and the tests each stage left behind.
+ 3. 几何与线索模型抽成四个无依赖头文件,从此一切都能脱离宿主被测试。
+    The physics moves into four dependency free headers, so everything can be tested headless.
 
-第 1 步 · 距离对齐(插件最初的样子)
-一个单声道对象、一个距离、一个声速:输出 = 输入延迟「距离 ÷ 声速」,让点话筒与主话筒在时间上
-对齐。声速可手输,也可由温度、湿度、气压算出(湿度用 Cramer 近似 —— 它对声速影响很小,但对
-20 kHz 附近的吸收很明显,写清楚比忽略它诚实)。参数表在此定型,顺序后来一直沿用,状态版本
-兼容也靠它。
-Step 1 · Distance alignment (what the plug-in first was). One mono object, one distance, one
-speed of sound; the output is the input delayed by distance ÷ speed. The speed comes from air
-conditions by Cramer's approximation. The parameter list took its shape here, and that ordering is
-what later made the state compatible across every version.
+ 4. 制式表与最大拾音角:最大拾音角 ≠ 话筒指向角;时间差阵列有闭式解
+    sin(SRA/2) = 声速 × 1.5 ms ÷ 间距,它复现了已发表的 AB 表。
+    Technique table and recording angle: the recording angle is not the microphone angle.
 
-第 2 步 · 从"延时器"变成"声像器"
-加入点话筒角度与主话筒制式。核心认识:点话筒的左右分配不是一个音量旋钮,而是"这个声源在
-主阵列里本来会是什么样"。于是 AB 以时间差为主、XY 以电平差为主、ORTF 两者兼有。为了让左右各自
-不同,输入总线从单声道改成立体声,内部再把 L+R 相加成那一个声源对象。
-Step 2 · From a delay to a panner. The spot angle and the main array technique arrived, and
-with them the realisation that the distribution is not a volume knob but what the source would have
-been in the array. The input bus became stereo so the two sides can differ.
+ 5. 像场位置与畸变:间距型在覆盖角之外饱和,指向型继续扩张。
+    Image position and distortion: a spaced array saturates, an aimed one keeps expanding.
 
-第 3 步 · 几何与线索模型(纯头文件)
-把物理从插件里抽出来放进 `spotPanner.h` / `formatRules.h` / `panoramaGeometry.h` / `soundSpeed.h`,
-不依赖 VST 与界面 —— 这一步让后来所有东西都能脱离宿主被测试。模型包含:到每支话筒的精确
-距离(含高度差)÷ 声速 = 该侧延时;指向性 `a + (1−a)·cos φ` 叠加距离衰减;等功率归一化;以及
-线索相加 —— 电平差满偏 18 dB、时间差满偏 1.5 ms。
-Step 3 · Geometry and cue model (pure headers). Four headers with no dependency on VST or the
-GUI, which is what allowed everything to be tested without a host: distance over speed of sound,
-directivity with the 1/r law, equal power normalisation, and the two cues with the classic
-constants of equivalence stereophony.
+ 6. 单声道/立体声轨道检测:不足两个声道就原样通过并在面板说明,无需重载。
+    Mono and stereo track detection: fewer than two channels means pass through and say so.
 
-第 4 步 · 制式表与最大拾音角(SRA)
-一次关键的概念纠正:最大拾音角 ≠ 话筒指向角。前者是"这个阵列能把多宽的前方塞进像场",
-由间距、张开角与指向性共同决定,而且有权威数据。据此建立六种制式的规则表,并得到时间差阵列的
-解析式 `sin(SRA/2) = 声速 × 1.5 ms ÷ 间距` —— 它精确复现了表里的 AB 60/90/120 cm → 118/68/50°。
-Step 4 · The technique table and the recording angle. The recording angle is not the microphone
-angle. The table of six techniques was built from that, and the closed form for a time difference
-array reproduces the published AB rows exactly.
+ 7. 德卡树的中置话筒真的参与运算:独立延时线、等量送入左右,并因此稀释左右线索。
+    The Decca Tree centre microphone is really in the audio path and dilutes the outer cues.
 
-第 5 步 · 像场位置与畸变
-同一个线索模型回答:这个声源最后落在像场哪里(0 = 中间,±1 = 一只音箱)。两类阵列在此分道扬镳:
-间距型在覆盖角之外饱和(时间差有上限),指向型继续扩张(电平差没有上限)。这就是"同样
-宽度的 AB 与 ORTF 声像感觉不同"的数学表述。
-Step 5 · Image position and its distortion. A spaced array saturates past its recording angle
-because its time difference has a ceiling; an aimed array keeps expanding because its level
-difference has none.
+ 8. 读数架构改写:控制器用与音频相同的纯函数算好、发布成只读参数、视图只解析标签文本 ——
+    显示与音频从此不可能给出两个不同答案。
+    Readouts rewritten: the controller publishes what the audio uses; views only parse label text.
 
-第 6 步 · 单声道/立体声轨道检测
-轨道只有一条声道时插件做不了该做的事,于是:数清轨道真正给出的声道,不足两个就原样通过并
-在面板说明;轨道一变成双声道立刻恢复处理,无需重载。(这一步引出的 bug 见 2.1–2.3。)
-Step 6 · Mono and stereo track detection. Fewer than two channels means pass through and say so;
-the moment the track becomes stereo the processing resumes with no reload.
+ 9. 强度差:大间距、近距离时 1/r 与时间差都要算,两者方向相反且互补。
+    The intensity difference of the 1/r law is in the model, alongside the time difference.
 
-第 7 步 · 德卡树真正的中置话筒
-德卡树不是"一个很大的 AB"。它有中置话筒,而且真的参与 DSP:独立延时线,按三支话筒的几何
-各算一条路径,等量送入左右。这解释了它为什么中置结实(中置在左右线前方,离声源更近),
-以及它为什么会稀释左右线索 —— 同样的左右间距,加中置后覆盖角变宽(1.5 m + 1 m:40° → 87°)。
-Step 7 · The Decca Tree centre microphone, for real. Its own delay line, fed to both sides,
-which explains both the firm middle and the way it dilates the outer pair's cues.
+10. 制式从紧身衣变成预设:三项都可改,每个制式只提供它真正会用的选项,改离标准值标出 edited。
+    A technique became a preset: everything stays editable, and geometry drift is marked.
 
-第 8 步 · 读数架构的改写(一次重要转向)
-视图一开始自己去读控件数值,这条路先后失败两次(2.2、2.3)。最终改成:**控制器用与音频完全相同
-的纯函数算出结果 → 发布成只读参数 → 宿主转发 → 标签显示文本 → 视图只解析文本**。从此显示与
-音频不可能给出两个不同答案。
-Step 8 · Rewriting how readouts reach the panel. Views stopped reading controls; the controller
-computes with the same pure functions the audio uses and publishes read only parameters; the views
-parse label text.
+11. 界面:黑金配色、可拖动的扇形图、读数区、格式面板,窗口高度 420 → 362。
+    The panel: palette, draggable display, readouts, format panel.
 
-第 9 步 · 强度差:大间距也要算
-你指出 AB 在大间距、近距离时不只有时间差。对:两支话筒到声源距离不同,1/r 定律在 3 m 间距 /
-4 m 距离时给出超过 4 dB,而 20 m 外不到 1 dB。时间差方向相反 —— 随距离略微增大并逼近
-「间距 × sin 角度」。两条互补规律都进了模型,都有断言。
-Step 9 · The intensity difference at wide spacings. More than 4 dB at 3 m of spacing and 4 m of
-distance, under 1 dB at 20 m, while the time difference grows slightly with distance towards
-spacing × sin of the angle.
+12. 验证设施:无头测试、契约检查、布局检查(含父容器层级)、验证器、状态版本链 v1 → v10。
+    Verification: headless suites, contract and layout checks, the validator, state versions.
 
-第 10 步 · 制式从"紧身衣"变成"预设"
-原先三项都被制式名锁死,标准 AB 之外的阵列无法表达。改成:制式 = 预设,选定后三项都可改;
-每个制式只提供它真正会用的选项(重合 XY 固定角度、只有心形与八字;ORTF/NOS/DIN 三档心形家族;
-AB 与德卡树为全向,别家不许选全向)。改动后标出 `edited`,改回标准值标记自动消失。
-Step 10 · A technique became a preset. All three values stay editable, each technique offers
-only what it is done with, and a changed geometry is marked `edited` until the values are its own
-again.
+13. 分发:一键安装脚本、单文件 zip、五语 README、厂商改名为 Forrest's Plug-ins。
+    Distribution: one click install, a single zip, five languages, vendor renamed.
 
-第 11 步 · 界面
-黑金配色、可拖动的扇形图(点与角度是同一个值的两种看法)、读数区、格式面板;窗口高度从 420
-压到 336。界面自身的错误见 2.10–2.12。
-Step 11 · The panel. The palette, the draggable dome display, the readouts, the format panel,
-and the window brought down from 420 to 336.
+------------------------------------------------------------------------
+二、修正记录 / Corrections
+------------------------------------------------------------------------
 
-第 12 步 · 验证设施
-无头测试(纯头文件脱离宿主独立编译,三套)、契约校验(标签与参数枚举、各视图子控件形状)、
-布局检查(越界、重叠、父容器层级)、Steinberg 验证器 47 项、状态版本链 v1→v8。最强的一次验证
-是 2.8:模型不知道 Blumlein 是什么,却从"重合 + ±45° + 八字"算出 75.7°,与表里的 76° 差 0.3°。
-Step 12 · Verification. Headless suites, a contract check, a layout check with parent
-containment, the validator's 47 tests, and a state chain from v1 to v8. The strongest check is 2.8.
-
-第 13 步 · 分发
-一键安装脚本(自动判断权限)、单文件 zip、五个语言版本的 README(英/中/德/法/日,全部带 UTF-8
-BOM 以免乱码)、厂商名改为 Forrest's Plug-ins。本机开发安装用 junction 指向构建目录,每次重新
-构建后立刻是最新版。
-Step 13 · Distribution. An install script that picks the right folder for the rights it has, a
-single zip, a README in five languages with a BOM, and the vendor renamed. The development install
-is a junction to the build folder, so every rebuild is immediately current.
-
-现在的功能 / What it does now
-------------------------
-
-- 距离对齐:声源距离 ÷ 声速得到延时,声速可手输,也可由温度、湿度、气压计算。
-- 制式驱动的分声道处理:主话筒制式(AB / ORTF / XY / NOS / DIN / Decca Tree)决定左右
-  各自的延时与电平,而不是一个普通声像旋钮。
-- 单声道轨道检测:轨道给不出两个声道时,对象原样通过,面板给出警告。
-- 覆盖角与几何标记:面板显示阵列覆盖角、左右延时与电平;阵列被改离该制式标准几何时标出 edited。
-- 德卡树中置话筒:真的参与 DSP(独立延时线,等量送入左右),不是"当成一个大 AB"。
-- 分发:五个语言版本的 README、一键安装脚本、单文件 zip。
-
-- Distance alignment: distance divided by the speed of sound, which can be entered by hand or
-  computed from temperature, humidity and air pressure.
-- Format driven per channel processing: the main array (AB / ORTF / XY / NOS / DIN / Decca Tree)
-  decides the delay and the level of each side, instead of a plain level panner.
-- Mono track detection: when the track cannot carry two channels the object passes through and
-  the panel says so.
-- Coverage and geometry marker: the panel shows the recording angle and both delays and levels,
-  and marks the array as edited when it no longer matches the geometry of its technique.
-- Decca Tree centre microphone: it really is in the audio path (its own delay line, fed to both
-  sides), not treated as a wide AB.
-- Distribution: README in five languages, a one click install script, a single zip.
-
-------------------------------------------------------------
-
-修正记录 / Corrections
-------------------
-
-早期修正 / Early corrections
-
-E1 · 黑金配色与控件标签表。两个开局错误:颜色写成 `#AARRGGBB`(VSTGUI 要 `#RRGGBBAA`),
-以及漏了 `<control-tags>` 表 —— 于是控件与参数对不上,界面一片空白。
-E1 · Palette and tag table. Colours written the wrong way round and a missing tag table, so
-nothing was bound at all.
-
-E2 · 自定义视图改了状态却不重绘。`CView::setVisible()` 不触发重绘,而在 `drawRect` 内部
-请求重绘会被丢弃。修法:所有自定义视图只在 `onIdle()` 里改状态,并同时 `invalid()` 自己与整个
-frame。
-E2 · State changed without a repaint. `setVisible()` does not repaint, and a repaint asked for
-from inside a paint is dropped. Every custom view applies state in `onIdle()` now.
-
-E3 · 延时读数不跟随高度。重算读数的函数里有一份手写的参数清单,漏了两个高度参数。修法:
-改成"除读数自身以外一律重算",从此不必维护清单。
-E3 · The delay readout ignored the heights. A hand written list of triggers had missed them;
-everything is recalculated now except the readouts themselves.
-
-E4 · 零散的编译与构建问题。`str16BufferSize` 不能加命名空间限定;一个辅助函数在定义之前被
-调用;一次编辑残留导致大括号失衡;`LINK1104` 只表示宿主还占着那个 DLL,关掉即可。
-E4 · Small build ones. A namespace qualified macro, a helper called before it was defined, a
-leftover brace, and `LINK1104`, which only means a host still holds the DLL.
+早期 / Early
+ E1. 颜色写成 #AARRGGBB(VSTGUI 要 #RRGGBBAA),且漏了 <control-tags> 表 ⇒ 界面一片空白。
+     Colours written the wrong way round and a missing tag table.
+ E2. CView::setVisible() 不触发重绘,绘制中请求重绘会被丢弃 ⇒ 自定义视图只在 onIdle 改状态。
+     setVisible() does not repaint, and a repaint asked for from inside a paint is dropped.
+ E3. 延时读数不跟随高度:重算用了一张手写的参数清单 ⇒ 改为除读数自身以外一律重算。
+     The delay readout ignored the heights because the trigger list was written by hand.
+ E4. 零散编译问题:str16BufferSize 不能加限定、辅助函数在定义前被调用、编辑残留导致括号失衡、
+     LINK1104 只是宿主还占着 DLL。
+     Small build ones: a qualified macro, a forward reference, a leftover brace, a held DLL.
 
 中期与近期 / Middle and recent
+ 2.1  单声道检测永远报 0:与自己的默认值比较 ⇒ 改为与上次真正上报的值比较。
+ 2.2  文本标签收不到数值:VST3 对 CTextLabel 只调 setText ⇒ 改为读标签文本。
+ 2.3  嵌套控件读值恒为 0(架构性教训)⇒ 视图不再读控件(见第 8 步)。
+ 2.4  55 度显示成 0.6:RangeParameter::toString 收到的是归一化值 ⇒ 委托基类转换。
+ 2.5  列表选心形却显示 Figure-8:归一化应除以 (项数 − 1)。
+ 2.6  NOS 默认变 20 cm、Decca 越界、edited 不出现:一个陈旧重复常量遮蔽了正确的制式数。
+ 2.7  SRA 从 96 跳到 133:阈值改取该制式自己的标准阵列(取被问的阵列是循环定义)。
+ 2.8  XY + 八字算出 180 度(表里 76):重合阵列增益和为零 ⇒ 0/0 = NaN ⇒ 现在 75.7 度。
+ 2.9  超心形与八字的响应为负:被当成小差值 ⇒ 改为「极性相反 = 已越过极值」。
+ 2.10 点话筒 Angle 行消失:面板改矮而行坐标没动 ⇒ 布局检查增加父容器层级检查。
+ 2.11 面板中间空洞:条件显示的行从中间移到最后。
+ 2.12 关窗再开动点回原点:视图缓存了被重建的控件指针 ⇒ 每次刷新重新查找;读数搬到绘制前。
+ 2.13 厂商名与占位信息 ⇒ Forrest's Plug-ins,UID 未动,旧工程照常加载。
 
-2.1 单声道轨道检测永远报 0
-现象:立体声轨道上显示 "0 channels",面板一直警告。
-根因:处理器把当前轨道声道数与自己的默认值比较,相同就不上报;而控制器一侧由宿主
-初始化为 0,于是编辑器永远停在 0。
-修法:改为与自己上一次真正上报的值比较(初值设为 −1),第一块必然上报。
-Verification:立体声轨道立即显示 "Track output: 2 channels"。
+2026-10-16 的修订 / Revisions of this day
+ 修订一   说明文档五语化;README 更名为 README-English 等;强调「必须立体声轨道」。
+ 修订二   扇形图重绘:只 invalid() 自己不够,必须同时 invalid() 整个 frame。
+ 修订三   重开视窗仍不动:绘制发生在 idle 之前 ⇒ 改为每次绘制前读一次参数。
+ 修订四   扇形图不再读控件:控制器发布 Spot Azimuth / Spot Distance 只读参数,V8 → V9。
+ 修订五   五语 README 增加「只给点话筒轨道添加」与结尾致谢、反馈邮箱。
+ 修订六   反馈邮箱更正为 qiuzhenyan4135@163.com。
+ 修订七   六份 README 统一为 简介 / 原理 / 要求 / 用法;用法补入「点话筒本身是一对」的正确做法。
+ 修订八   新增 L/R Time Difference 开关(Yes/No),V9 → V10;窗口 336 → 362。
+ 修订九   开关两处修正:列表改为 Off/On(未勾 = 单一延时);控制器算读数时也传同一个开关。
+ 修订十   关闭时间差时把摆位折算成电平差(1.5 ms ↔ 18 dB),否则 AB 上点话筒几乎不移动。
+ 修订十一 README 与选项名一致(No → Off),并说明关闭后 Angle 仍是几何输入而非自由声像旋钮。
+ 修订十二 清除全部诊断代码:六个写 %TEMP% 的日志函数与一个读 %TEMP% 的测试钩子。
+          Clear every diagnostic: six logging functions and one test hook that read %TEMP%.
 
-Mono detection always reported zero.
-Symptom: a stereo track showed "0 channels" and kept warning.
-Cause: the processor compared the track channel count with its own default and stayed silent when
-they matched, while the controller side had been initialised to zero by the host.
-Fix: compare with what was last reported (initialised to −1), so the first block always reports.
-Verified: a stereo track immediately shows "Track output: 2 channels".
+------------------------------------------------------------------------
+三、验证方式 / How it is verified
+------------------------------------------------------------------------
+ 无头测试(纯头文件独立编译)、契约检查(标签与参数枚举、各视图子控件形状)、
+ 布局检查(越界、重叠、父容器层级)、Steinberg 验证器 47 项、状态版本链 v1 → v10。
+ 最强的一次外部验证:模型不知道 Blumlein 是什么,却从「重合 + ±45° + 八字」算出 75.7°,
+ 与已发表的 76° 相差 0.3°。
 
-2.2 文本标签收不到数值
-现象:从控件读取数值恒为 0。
-根因:VST3 编辑器对 `CTextLabel` 只调用 `setText()`,从不给它数值
-(见 `vst3editor.cpp` 的 `updateControlValue`)。
-修法:改为读取标签文本并解析出数字(这条路径后来成为读数的标准做法)。
+ Headless suites on the pure headers; a contract check; a layout check with parent containment;
+ the validator's 47 tests; state versions from v1 to v10. The strongest external check: 75.7°
+ against a published 76°, derived without being told what a Blumlein pair is.
 
-A text label never receives a numeric value.
-Symptom: reading a value from that control always gave zero.
-Cause: for a `CTextLabel` the VST3 editor only calls `setText()`, never sets a value.
-Fix: read the label's text and parse the number out of it — a path that later became the standard
-way every readout is delivered.
+------------------------------------------------------------------------
+四、刻意没有做 / Deliberately not done
+------------------------------------------------------------------------
+ · 点话筒自身的指向性不再套一遍 —— 它已经录在信号里,再施加一次就是重复计算。
+ · AAX(Pro Tools 拒绝未签名的 AAX;需要 Avid 审批 + PACE 签名 + iLok)。
+ · macOS / AU(SDK 自带 AU 包装器且不需要签名,只差一台 Mac)。
+ · 自动延时测量(互相关 + 几何校验)—— 留待 2.0。
 
-2.3 控件嵌套时读值恒为 0(架构性教训)
-现象:间距、温度、湿度、气压四个字段读出来全是各参数的最小值(日志证据:
-`spacing=10 temp=-20 hum=1 pres=80`),而界面上显示的值完全正确。
-根因:凡是嵌在普通容器里的控件,通过视图读它的值都得到 0;直接子控件则正常。
-修法:不再让视图读控件。控制器用共享的纯函数算出结果,写成只读参数,宿主转发给
-标签,视图只解析文本。显示与音频从此不可能算出两个不同答案。
+ The spot's own polar pattern is not applied again. AAX needs Avid approval, PACE signing and an
+ iLok. AU needs only a Mac. Automatic delay estimation is kept for 2.0.
 
-Reading a nested control always gives zero (the architectural lesson).
-Symptom: spacing, temperature, humidity and pressure all read as their minimum values while the
-panel displayed them correctly.
-Cause: any control nested inside a plain container answered zero; direct children answered fine.
-Fix: views no longer read controls at all. The controller computes the values with the same pure
-functions the audio path uses, publishes them as read only parameters, and the views parse the
-label text. Display and audio can no longer disagree.
+------------------------------------------------------------------------
+五、已知风险 / Known risks
+------------------------------------------------------------------------
+ · 关闭时间差后,Angle 仍是几何输入:改它会同时改距离、离轴角与参照话筒。
+ · 中线处参照话筒切换到另一支,延时有一个 Δt 大小的跳变(手动使用无碍,自动化时会显现)。
+ · 单声道折叠下,左右只要存在 Δt 就有梳状零点 f = 1/(2Δt) —— 时间差成像的固有代价。
+ · 近距离时乐器不能近似为点声源,几何给出的对齐值只是代表性近似。
 
-2.4 输入 55 度显示成 0.6
-现象:`Aimed at` 输入 55,显示 0.6。
-根因:`RangeParameter::toString` 收到的是归一化值,55 ÷ 90 正好是 0.61。
-修法:委托基类做归一化到物理值的转换,再追加单位(与已正确的 `ParamRef` 一致)。
+ With the time difference off, Angle remains a geometry input. Crossing the centre line switches
+ the reference microphone, a step the size of the time difference. Any left/right time difference
+ gives mono comb nulls at f = 1/(2Dt). Close to the source the instrument is not a point.
 
-55 degrees displayed as 0.6.
-Cause: `RangeParameter::toString` receives the normalised value, and 55/90 is 0.61.
-Fix: let the base class convert to the plain value, then append the unit.
+------------------------------------------------------------------------
+六、交付状态 / Status
+------------------------------------------------------------------------
+ 版本 1.0.0;验证器 47/47;无头测试 0 失败;契约与布局检查全部通过;30 个参数。
+ 源码中已无任何 fopen / getenv:插件不读写任何文件。
+ 交付物:SpotAligner-1.0.0-win64.zip(插件 + Install.bat + 五语 README + 本报告)。
 
-2.5 列表选"心形"却显示 Figure-8
-现象:选 ORTF 后指向性显示成 Figure-8。
-根因:VST3 列表参数的归一化是 `序号 ÷ (项数 − 1)`,我用了 `÷ 项数`,整体错了一位。
-修法:统一约定,并在建立列表时显式设置 `stepCount = 项数 − 1`。
+ Version 1.0.0; validator 47/47; headless suites with no failures; contract and layout checks
+ clean; 30 parameters. No fopen or getenv remains anywhere: the plug-in touches no files.
+ Deliverable: SpotAligner-1.0.0-win64.zip.
 
-A list entry landed one row off.
-Cause: a VST3 list parameter normalises as `index / (count − 1)`; the code used `index / count`.
-Fix: one convention everywhere, with `stepCount` set explicitly when the list is built.
-
-2.6 NOS 默认变 20 cm、Decca Tree 数值越界、edited 永不出现
-现象:选 NOS 间距变成 20 cm(那是 DIN 的);选 Decca Tree 出现越界读数;改动几何后
-`edited` 不出现。
-根因:`parameters.h` 里有一个陈旧重复常量 `kMainFormatCount = 7`(早期含 MS 时的值),
-它遮蔽了 `formatRules.h` 里正确的 6,制式范围因此变成 `{0, 6}`,所有制式整体偏移一位。
-修法:删除陈旧定义,改为显式限定 `Panorama::kMainFormatCount`,并在代码里写明原因;
-同时检查其余计数量,确认没有第二处重复。
-
-NOS defaulted to 20 cm, Decca Tree went out of range, edited never appeared.
-Cause: one stale duplicate constant in `parameters.h` (`kMainFormatCount = 7`, from when MS was in
-the list) shadowed the correct value in `formatRules.h`, so the range became `{0, 6}` and every
-format was shifted by one entry.
-Fix: the stale copy is gone, the use is qualified, and the reason is written down. All other counts
-were checked for the same mistake.
-
-2.7 改一下间距,SRA 从 96 跳到 133
-现象:标准 ORTF 显示表里的 96 度,轻轻改一下间距就跳到 133 度。
-根因:模型对"电平 + 时间"混合制式的标定与权威表不同(表里 ORTF 是 96)。
-修法:用该制式自己的标准阵列算"满偏阈值",混合制式因此在表值附近连续变化。
-(第一版我把阈值取自被问的那个阵列,成了循环定义 —— 自己发现并改正。)
-验证:15 / 17 / 25 / 40 / 69 cm → 100 / 96 / 82 / 64 / 44 度,平滑无跳变。
-
-The recording angle jumped from 96 to 133 when the spacing was touched.
-Cause: the model's calibration for mixed level-and-time arrays differed from the published table.
-Fix: the threshold is taken from the technique's own standard array, so a changed geometry moves
-smoothly away from the published value. (The first attempt took it from the array being asked
-about, which is circular; that was caught and corrected.)
-Verified: 15 / 17 / 25 / 40 / 69 cm give 100 / 96 / 82 / 64 / 44 degrees.
-
-2.8 XY + 八字算出 180 度,而表里是 76 度
-现象:Blumlein(重合的 ±45 度八字对)模型给出 180 度,权威表是 76 度。
-根因:重合阵列在 90 度时两个增益符号相反、大小相等,`(gL + gR)` 为零,
-"外话筒占比"成了 `0/0 = NaN`;NaN 让二分比较恒假,解算器于是认为"永远达不到",返回整个前方。
-修法:分母取幅度、趋零则份额为零;并明确"两声道极性相反 = 已到极值",不是"没有差异"。
-验证:现在得 75.7 度,与表里的 76 度相差 0.3 度 —— 模型事先不知道 Blumlein,
-是从"重合 + ±45 度 + 八字"三个事实独立算出来的。
-
-A Blumlein pair came out as 180 degrees where the table says 76.
-Cause: for a coincident array at ninety degrees the two gains are equal and opposite, so the
-"share carried by the outer pair" was 0/0 = NaN; a NaN made every comparison false and the solver
-reported the whole front.
-Fix: the share is a magnitude over a magnitude, a vanishing denominator leaves no share, and two
-sides of opposite polarity count as the far end of the image rather than as no difference.
-Verified: 75.7 degrees, within 0.3 of the published 76 — derived from coincident, ±45° and figure
-of eight alone, without being told what a Blumlein pair is.
-
-2.9 超心形与八字的响应为负
-现象:指向性改为超心形或八字后,覆盖角读数失真。
-根因:离轴足够远时响应为负(反相),被当成"差值很小",破坏了求解所需的单调性。
-修法:按"极性相反 = 已越过极值"处理。
-验证:同一 ORTF 几何下 心形 96 / 超心形 75.5 / 八字 41.6 度,顺序合理。
-
-Negative off axis response.
-Cause: past its null a directional microphone answers with the opposite sign; treating that as a
-small difference broke the monotonicity the solver needs.
-Fix: opposite polarity counts as past the extreme.
-Verified: the same ORTF geometry gives 96 (cardioid), 75.5 (supercardioid), 41.6 (figure of eight).
-
-2.10 点话筒的 Angle 行凭空消失
-现象:面板上 SPOT MICROPHONE 一整段不见了。
-根因:我删掉一行时把格式面板高度改小了,里面那些行的坐标没动,于是最后一整段落在
-面板之外被裁掉(VSTGUI 按父容器裁剪子控件)。
-修法:面板高度回到能容纳最后一行;并给布局检查增加父容器层级检查,这类问题以后
-会被直接报出来。
-
-The spot microphone angle silently disappeared.
-Cause: the panel was made shorter while the rows inside kept their coordinates, so the last block
-fell outside it and was clipped.
-Fix: the panel is tall enough again, and the layout check now compares every child with its own
-container, not only with the window.
-
-2.11 面板中间出现空洞
-现象:切到重合制式时,面板中间多出一块空白。
-根因:会被隐藏的行(间距、中置)排在中间。
-修法:把条件行移到最后,隐藏时留下的空白落在面板底部。
-
-A hole in the middle of the panel.
-Cause: the rows that can be hidden sat in the middle of the panel.
-Fix: they are last now, so hiding one leaves the space at the bottom.
-
-2.12 关掉视窗再打开,扇形图的动点回到原点
-现象:关闭视窗(不是移除插件)再打开,动点回到扇形图原点,但参数数值完全没变。
-根因:视图缓存了控件指针;重开视窗时编辑器会把整套控件重建,缓存的旧对象一直回答
-它创建时的初始值 0,于是点被摆到中心。
-修法:每次 idle 重新按 tag 查找控件,绝不缓存;拖动时不被参数反拉。
-验证:重开视窗后动点停在原处。
-
-The point in the display fell back to the centre after closing and reopening the window.
-Cause: the view cached the control pointers; reopening the window rebuilds every control, and the
-cached objects kept answering with the value they were created with.
-Fix: the controls are looked up again on every idle and never cached; while dragging, the point is
-not pulled back by the parameters.
-Verified: the point stays where it was.
-
-2.13 厂商名
-现象:宿主里显示 "My Plug-in Company"。
-修法:改为 Forrest's Plug-ins,同时改工厂定义、构建配置、DLL 文件属性与全部版权头;
-并清掉模板里的假网址与假邮箱。插件 UID 未动,已有工程照常加载。
-
-Vendor name. Changed to Forrest's Plug-ins in the class factory, the build configuration,
-the file properties of the DLL and every copyright header; the placeholder URL and e-mail were
-removed. The plug-in UID is untouched, so existing projects keep loading.
-
-------------------------------------------------------------
-
-验证方式 / How it is verified
--------------------------
-
-- 无头测试(纯头文件独立编译,不需要宿主):几何与像场、制式规则、延时与状态版本三套。
-  其中包含 Sengpiel 表的逐行断言(AB 60/90/120 cm → 118/68/50 度;ORTF 96;NOS 81;DIN 101;XY 196)
-  与德卡树中置对覆盖角的影响。
-- 委托校验(uicheck):控件标签与参数枚举交叉核对、各自定义视图的子控件形状。
-- 布局检查:越界、重叠、以及父容器层级(见 2.10)。
-- Steinberg 验证器:47 项全部通过。
-- 独立复现:Blumlein 76 度(见 2.8)—— 这是模型最强的一次外部验证。
-
-- Headless tests (the pure headers compiled on their own, no host needed): geometry and image,
-  format rules, delay and state versions. They include the published table row by row and the
-  effect of a Decca centre microphone on the recording angle.
-- Contract check (uicheck): control tags against the parameter enum, and the shape of every
-  custom view.
-- Layout check: out of bounds, overlap, and containment by the parent view (see 2.10).
-- Steinberg validator: 47 tests passed.
-- Independent reproduction: the Blumlein 76 degrees of 2.8.
-
-------------------------------------------------------------
-
-刻意没有做 / Deliberately not done
------------------------------
-
-- 点话筒指向性不进 DSP。那支话筒的指向性已经录在它的信号里了,再套一遍是重复计算
-  (双份近讲、双份离轴衰减)。它现在的用途是一句提示,说明该制式下对齐值不值得、梳状滤波风险多大。
-- AAX(Pro Tools)。SDK 里虽然自带 VST3→AAX 包装器,但 Pro Tools 拒绝加载未签名的 AAX,
-  需要 Avid 审批 + PACE 签名 + 实体 iLok;或者用包装宿主(如免费的 Modalics Plugin Buddy)直接跑 VST3。
-- AU / macOS。SDK 里也自带 AUv2/AUv3 包装器和 CMake 助手,且不需要任何签名,
-  唯一门槛是一台 Mac;Logic 与 GarageBand 只认 AU。
-- 实时电平表(曾按需求实现后完整删除)、侧链自动定位(留待 2.0)。
-
-- The spot microphone's polar pattern is not applied to the audio. That microphone's pattern is
-  already in its recording, so applying it again would count it twice. It is used as a note instead.
-- AAX (Pro Tools). The SDK does ship a VST3 to AAX wrapper, but Pro Tools refuses unsigned AAX:
-  it needs Avid approval, PACE signing and a physical iLok — or a wrapper host that itself is signed.
-- AU / macOS. The SDK also ships AUv2 and AUv3 wrappers and a CMake helper, with no signing gate
-  at all; the only requirement is a Mac. Logic and GarageBand require AU.
-- Live level meters (implemented, then removed on request) and side chain auto positioning
-  (kept for 2.0).
-
-------------------------------------------------------------
-
-已知风险 / Known risks
-------------------
-
-- 已根治:四个自定义视图(含 `PanoramaView`)过去都是"找到即缓存"的写法,
-  重开视窗时缓存的控件已被销毁,于是出现 2.12 那类幽灵问题。现在每次刷新都重新按 tag 查找,
-  任何控件重建都不会再让视图失效。代价是每帧几百次指针比较,可忽略。
-- 两个电平表参数保留但不再使用,目的是不回退参数编号、旧工程仍可读。
-- "距离强度差(1/r)" 与 "18 dB / 1.5 ms" 在混合制式下的组合仍是近似;端点与权威表一致
-  (时间型 AB、电平型 XY/Blumlein 都是精确的)。
-
-- Fixed for good: all four custom views (including `PanoramaView`) used to cache what they found.
-  Reopening the window rebuilds every control, which is what produced the ghost of 2.12. Every lookup now
-  happens again on each refresh, at the cost of a few hundred pointer comparisons per frame.
-- Two meter parameters are kept but unused, so that parameter numbering — and older projects — stay valid.
-- The combination of the 1/r intensity difference with the 18 dB / 1.5 ms rule remains an
-  approximation for mixed arrays; the end points match the published table exactly.
-
-------------------------------------------------------------
-
-交付状态 / Status
--------------
-
-- 版本 1.0.0;验证器 47/47;三套无头测试 0 失败;契约与布局检查全部通过。
-- 交付物:`SpotAligner-1.0.0-win64.zip`(插件 + Install.bat + 五语 README)。
-- 本机开发安装是一条 junction,指向构建目录,因此每次重新构建后自动是最新版。
-
-- Version 1.0.0; validator 47/47; three headless suites with no failures; contract and layout
-  checks clean.
-- Deliverable: `SpotAligner-1.0.0-win64.zip` (plug-in, Install.bat, README in five languages).
-- The development install on this machine is a junction to the build folder, so every rebuild is
-  immediately the current version.
-------------------------------------------------------------
-
+------------------------------------------------------------------------
 修订记录 / Revision log
+------------------------------------------------------------------------
+ 每次修改都在这份报告的基础上追加一条,写明日期与改了什么,不新开文件。
+ Every change appends one entry to this same report, with its date and what changed. No new file.
 
-每次修改都在这份报告的基础上【追加】一条,写明日期与改了什么,不新开文件。
-Every change appends one entry to this same report, with its date and what changed. No new file.
+ 2026-10-16 · 1.0.0 · 首次发布(含开发历程一至十三、全部修正与验证)。
+ 2026-10-16 · 1.0.0 · 报告压缩为精简版;当日十二次修订合并为上面的「修订一」至「修订十二」。
+ 2026-10-16 · 1.0.0 · First release, then condensed; the twelve revisions of the day are merged
+                     into the dated list above.
 
-2026-10-16 · 1.0.0 · 首次发布
-  内容:开发历程第 1–13 步;早期修正 E1–E4;中期与近期修正 2.1–2.13;
-        验证方式、刻意没有做、已知风险、交付状态。
-  本次发布内的最后两项修正:
-    · 2.12 关掉视窗再打开时扇形图动点回到原点(视图缓存了被重建的控件指针)
-    · 已知风险第一条:四个自定义视图统一改为"每次刷新重新查找控件",隐患根治
-  交付:SpotAligner-1.0.0-win64.zip(插件 + Install.bat + 五语 README + 本报告)
-2026-10-16 · 1.0.0 · First release
-  Contents: steps 1–13 of the development; early corrections E1–E4; corrections 2.1–2.13;
-  verification, what was deliberately left out, known risks, status.
-  Last two corrections inside this release: the point falling back to the centre after reopening
-  the window (2.12), and all four custom views changed to look their controls up on every refresh.
-  Deliverable: SpotAligner-1.0.0-win64.zip
-2026-10-16 · 1.0.0 · 同日修订
-  · 扇形图:点的方位与距离现在【始终可读】—— 增加了穿过圆心的方位线,以及点所在距离的圆环。
-    原因:近场映射(5 m = 半径的 30%)把常用距离压在圆心几个像素之内,输入角度或距离后点几乎不动,
-    看起来像"没有生效"。核对后确认:两个方向的映射都一直存在且算术正确,缺的是可读性。
-  · 三个自定义视图的控件缓存隐患根治(见"已知风险"第一条)。
-  · 五份 README 增加署名:南开大学物理科学学院 Zhenyan Qiu(各按该语言书写,姓名不译)。
-  · 本报告并入发布包,并自此按日期在此追加。
-2026-10-16 · 1.0.0 · Revision, same day
-  · The dot in the display now always shows its bearing and its distance: a spoke through the
-    centre at its angle, and a ring at the distance it stands for. The near field mapping puts
-    working distances within a few pixels of the centre, so a typed value moved the dot by almost
-    nothing and looked unapplied. Both mappings were present and arithmetically correct all along;
-    what was missing was the ability to read them.
-  · The control caching in three custom views is gone for good (see Known risks).
-  · All five READMEs now carry the signature: Zhenyan Qiu, School of Physics, Nankai University.
-  · This report now ships inside the package and is appended to, with dates, from here on.
-2026-10-16 · 1.0.0 · 修订二(扇形图重绘,根治)
-  · 现象:输入距离或角度后,扇形图的点不动;关掉视窗再打开,点停在原点。
-  · 根因:扇形图只调用 invalid() 标记【自己】,从不调用 frame->invalid()。
-    frame 是把子视图画进自己的缓存合成里的,只标脏自己的视图可以不重绘 ——
-    于是内部成员一直跟着参数在变,画面却停在第一次绘制时的样子;而第一次绘制发生在
-    读到参数之前,所以重开后看到的正是原点。
-    同一个编辑器里另外三个自定义视图都同时 invalid() 自己与 frame,它们一直正常 ——
-    这条规律在报告里早写着,只有扇形图漏了。
-  · 修法:抽出 refresh()(invalid() + frame->invalid()),onIdle 与拖动都走它;
-    并去掉绘制结束时多余的 setDirty(false)(另外三个视图都没有这一步)。
-  · 上一轮加的方位线与距离圆环保留 —— 它们让点在贴近圆心时仍可读。
-2026-10-16 · 1.0.0 · Revision 2 (the display's repaint, root cause)
-  · Symptom: typing a distance or an angle did not move the point; reopening the window left it
-    at the centre.
-  · Cause: the display called invalid() on itself and never frame->invalid(). A frame draws its
-    children into a cached composition of its own, so a view that marks only itself dirty can go
-    on showing what it drew last: the members followed the parameters all along while the picture
-    stayed as the first paint had left it - and that first paint happened before the parameters
-    were read, which is why reopening showed the centre. The other three custom views of this
-    editor invalidate the frame as well and have always repainted correctly; the rule was already
-    written down in this report, and this one view had missed it.
-  · Fix: one refresh() (invalid() plus frame->invalid()), used by both the idle callback and
-    dragging; the redundant setDirty(false) at the end of the paint is gone.
-  · The bearing line and the distance ring from the previous round are kept: they make the point
-    readable while it sits near the centre.
-2026-10-16 · 1.0.0 · 修订三(扇形图:重开后仍不动)
-  · 现象:操作后点能跟上参数了(上一版的重绘修复生效),但【关掉视窗再打开】后点仍在圆心,
-    方位线也停在 0 度 —— 尽管角度/距离输入框里是正确的值。
-  · 根因:重开视窗的【第一次绘制】发生在 idle 回调运行之前。绘制用的是构造时的默认位置,
-    而当时还没有人读过参数;等到 idle 跑起来时,画面已经画完了,只有等下一次重绘才会更正 ——
-    而那时除非用户再动一下,不会有下一次重绘。
-  · 修法:在【每次绘制之前】先读一次参数(followParameters)。绘制期间不请求重绘,
-    只是让这一帧的值本来就是对的 —— 于是重开后的第一帧就是正确位置,不依赖 idle 的时序。
-  · 如实记录:这一个 bug 我改了三轮才对。前两轮(缓存指针、可读性)都是真问题,但不是主诉;
-    真正该做的是【第一时间把扇形图与三个正常视图逐行比对】—— 一比就看出它缺 frame->invalid(),
-    以及它把读取放在 idle 而不是绘制前。教训:同类组件要互相参照,而不是各自推理。
-2026-10-16 · 1.0.0 · Revision 3 (the display, still stuck after reopening)
-  · Symptom: the point followed the parameters once they were touched (the repaint fix worked), but
-    after closing and reopening the window it sat at the centre with the bearing line at zero, while
-    the angle and distance fields held the right values.
-  · Cause: the first paint after a window is reopened happens before the idle callback has run. That
-    paint used the position the view was constructed with, and nothing asked for another one.
-  · Fix: read the parameters once more immediately before every paint. No repaint is requested
-    during a paint; the frame simply already carries the right value, so the first frame after a
-    reopen is correct and nothing depends on the order in which idle happens to run.
-  · Honestly recorded: this took three rounds. The first two (a cached pointer, then readability)
-    were real defects but not the complaint. The thing to do first was to compare this view line by
-    line with the three views that work - which shows at once that it lacked frame->invalid() and
-    that it read the parameters in idle instead of before painting.
-2026-10-16 · 1.0.0 · 修订四(扇形图:改为不读控件)
-  · 根因(第四次才对):显示一直在读【角度/距离输入框的值】。而输入框正在被输入时,
-    编辑器不会用参数值覆盖它 —— 所以参数早就对了(延时读数跟着变就是证据),控件的值却还是旧的 0。
-    拖动能动,是因为拖动直接写参数、并且自己设了点的位置,根本不读控件。
-  · 修法:新增两个只读参数 Spot Azimuth / Spot Distance(状态版本 V8 → V9,旧工程照样打开),
-    控制器把它们算好发布 → 两个 1×1 的隐形标签承载文本 → 显示解析文本。
-    这条路径已经是四个读数的既有做法,从不失败;从此显示与"控件是否正在被编辑"彻底无关。
-  · 代价:参数从 27 个增到 29 个(多两个只读项),界面布局与契约检查全部通过。
-2026-10-16 · 1.0.0 · Revision 4 (the display no longer reads a control)
-  · Cause, on the fourth attempt: the display read the angle and distance edit fields. While a
-    field is being typed into, the editor does not overwrite it with the parameter value - so the
-    parameter was already correct (the delay readouts followed it) while the control still held
-    the old zero. Dragging worked because a drag writes the parameter and sets the position
-    itself, without reading any control.
-  · Fix: two new read only parameters, Spot Azimuth and Spot Distance (state version V8 to V9,
-    older projects still open), published by the controller, carried by two invisible 1x1 labels
-    and parsed by the display. Four other readouts already travel this way and have never failed.
-  · Cost: 27 parameters became 29; layout and contract checks all pass.
-2026-10-16 · 1.0.0 · 改名:Betterpanner → Spot Aligner
-  · 理由:"panner"低估了它(它按主阵列物理做对齐与摆位,不只是声像旋钮),"Better-" 属于烂大街构词,
-    而且 "spot mic alignment" 才是这个圈子会去搜的词。
-  · 改了:插件显示名、二进制名(SpotAligner.vst3)、窗口标题、五份 README、安装脚本、分发包名、
-    工程目录(D:\VST3 Programming\SpotAligner\SpotAligner)以及内部类名。
-  · 没改:插件 UID(两个 FUID 的十六进制值一字未动)、参数编号、状态版本 —— 因此【旧工程照常加载】。
-    状态版本仍为 V9;只是名字变了,不影响存档。
-  · 代价:构建树必须重建(绝对路径写在缓存里),已重新 configure 并编译;
-    本机部署的 junction 已指向新路径,验证器 47/47、契约检查与布局检查全部通过。
-2026-10-16 · 1.0.0 · Renamed: Betterpanner to Spot Aligner
-  · Why: "panner" undersells it, and "spot mic alignment" is what this world actually searches for.
-  · Changed: display name, binary name, window title, five READMEs, install script, package name,
-    the project folders, and the internal class names.
-  · Untouched: the plug-in UIDs (the hexadecimal values are byte for byte the same), the parameter
-    numbering and the state version - so existing projects still load. The state version stays V9.
-  · Cost: the build tree had to be recreated because absolute paths live in its cache; the install
-    junction now points at the new path, and the validator, contract and layout checks all pass.
-2026-10-16 · 1.0.0 · 修订五(使用说明)
-  · 五份 README 增加一条关键使用提示:【只给点话筒轨道添加】—— 这条是使用中最容易搞错的地方。
-  · 结尾增加:感谢 VST 让每个人都能做插件;主测试 DAW 为 REAPER;反馈邮箱 qiuzhenyan4135@163.com。
-  · 中文版按作者原文逐字排布,其余四语按同一意思翻译。
-  · 安装包重打,文件名不变,便于直接替换发布页上的附件。
-2026-10-16 · 1.0.0 · Revision 5 (how to use it)
-  · All five READMEs gained the note that matters most in practice: put it on the spot track only.
-  · Closing lines added: thanks to VST, tested mainly in REAPER, and the feedback address.
-  · The package was rebuilt under the same file name so that a release asset can simply be replaced.
-2026-10-16 · 1.0.0 · 修订六(更正反馈邮箱)
-  · 反馈地址更正为 qiuzhenyan4135@163.com(原先漏了 4135),五份 README 与仓库 README 一并更正。
-2026-10-16 · 1.0.0 · Revision 6 (feedback address corrected)
-  · The feedback address is qiuzhenyan4135@163.com; the digits had been dropped. Corrected in all five
-    READMEs and in the repository README.
+------------------------------------------------------------------------
+附记 / A note on an incident
+------------------------------------------------------------------------
+ 清理诊断代码时,一次按行号删除的编辑判断错了文件的换行符,破坏了四个源文件。
+ 随后用本仓库最后一次提交恢复,并改用「花括号匹配」重新挖空诊断函数体。
+ 现编译与全部检查均已通过;记在此处,以免日后重犯。
+ While removing the diagnostics, one line range edit misjudged the line endings and damaged four
+ source files. They were restored from the last commit, and the diagnostic bodies were emptied by
+ brace matching instead. Everything builds and passes now; recorded so that it is not repeated.

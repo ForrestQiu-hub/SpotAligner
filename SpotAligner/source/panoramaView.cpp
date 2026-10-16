@@ -413,19 +413,7 @@ private:
 	    be traced from the outside. Remove with the rest of the diagnostics. */
 	void writeFollowDiagnostics (bool found, double degrees, double fraction) const
 	{
-		const char* temp = std::getenv ("TEMP");
-		if (!temp)
-			return;
-
-		std::string path (temp);
-		path += "\\spotaligner_panorama.log";
-
-		if (FILE* file = std::fopen (path.c_str (), "a"))
-		{
-			std::fprintf (file, "follow found=%d angle=%.3f distance=%.3f azimuth=%.3f radius=%.3f\n",
-			              found ? 1 : 0, degrees, fraction, azimuthDegrees, radiusFraction);
-			std::fclose (file);
-		}
+		// no file logging in a released build
 	}
 
 	/** Brings the mouse position into the space the dome is laid out in.
@@ -477,27 +465,7 @@ private:
 	    from the outside. Remove with its call sites once it is settled. */
 	void writeDragDiagnostics (const CPoint& where, const CPoint& used) const
 	{
-		const char* temp = std::getenv ("TEMP");
-		if (!temp)
-			return;
-
-		std::string path (temp);
-		path += "\\spotaligner_pan.log";
-
-		const CRect size = getViewSize ();
-
-		if (FILE* file = std::fopen (path.c_str (), "a"))
-		{
-			std::fprintf (file,
-			              "where=%.0f,%.0f used=%.0f,%.0f origin=%.0f,%.0f size=%.0f,%.0f az=%.1f r=%.3f "
-			              "ctrlAz=%.3f ctrlDist=%.3f\n",
-			              static_cast<double> (where.x), static_cast<double> (where.y), static_cast<double> (used.x),
-			              static_cast<double> (used.y), static_cast<double> (size.left), static_cast<double> (size.top),
-			              static_cast<double> (size.getWidth ()), static_cast<double> (size.getHeight ()), azimuthDegrees,
-			              radiusFraction, angleControl ? angleControl->getValueNormalized () : -1.0,
-			              distanceControl ? distanceControl->getValueNormalized () : -1.0);
-			std::fclose (file);
-		}
+		// no file logging in a released build
 	}
 
 	/** Writes a parameter value the way a user edit does: the host learns about

@@ -651,7 +651,8 @@ void SpotAlignerController::updateComputedReadouts ()
 	const int format = static_cast<int> (toPlainValue (kParamMainFormat, values[kParamMainFormat]) + 0.5);
 	const Panorama::ArrayGeometry array = arrayGeometryFromParameters (values);
 	const Panorama::ObjectPlacement object = objectPlacementFromParameters (values);
-	const Panorama::StereoSetup setup = Panorama::stereoSetup (array, object, speed);
+	const bool channelTimeDifference = values[kParamDelayDifference] > 0.5;
+	const Panorama::StereoSetup setup = Panorama::stereoSetup (array, object, speed, channelTimeDifference);
 
 	const double angle = recordingAngleDegreesFromParameters (values);
 
@@ -666,24 +667,6 @@ void SpotAlignerController::updateComputedReadouts ()
 	// is asked of the geometry and not remembered from the last edit.
 	const bool edited = Panorama::formatGeometryIsEdited (format, array);
 	setPlain (kParamGeometryNote, edited ? 1.0 : 0.0);
-
-	// Temporary: what the preset and the marker are looking at. Remove with the
-	// rest of the diagnostics.
-	if (const char* temp = std::getenv ("TEMP"))
-	{
-		std::string path (temp);
-		path += "\\spotaligner_array.log";
-		if (FILE* file = std::fopen (path.c_str (), "a"))
-		{
-			std::fprintf (file,
-			              "format=%d spacingCm=%.1f aimedAt=%.1f patternA=%.2f | standard %.1f / %.1f / %.2f | "
-			              "edited=%d\n",
-			              format, array.spacingMeters * 100.0, array.halfAngleDegrees, array.patternA,
-			              Panorama::formatStandardSpacingCm (format), Panorama::formatHalfAngleDegrees (format),
-			              Panorama::formatPatternA (format), edited ? 1 : 0);
-			std::fclose (file);
-		}
-	}
 
 	// A recording angle of the whole front means the array never reaches the
 	// extremes; it is reported as it is, the editor words it.

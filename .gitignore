@@ -19,3 +19,6 @@ image/
 *.suo
 Thumbs.db
 desktop.ini
+
+# the literature review is kept out of the repository
+文献综述/

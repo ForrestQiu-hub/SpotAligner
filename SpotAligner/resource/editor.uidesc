@@ -38,6 +38,7 @@
 		<control-tag name="AbSpacing" tag="11"/>
 		<control-tag name="CentreDistance" tag="12"/>
 		<control-tag name="SpotPattern" tag="13"/>
+		<control-tag name="DelayDifference" tag="31"/>
 		<control-tag name="SourceHeight" tag="14"/>
 		<control-tag name="MainHeight" tag="15"/>
 		<control-tag name="TrackChannels" tag="16"/>
@@ -56,7 +57,7 @@
 		<control-tag name="SpotDistance" tag="30"/>
 		<control-tag name="MeterRightDb" tag="28"/>
 	</control-tags>
-	<template background-color="Bg" background-color-draw-style="filled" class="CViewContainer" mouse-enabled="true" name="view" opacity="1" origin="0, 0" size="688, 336" transparent="false" wants-focus="false">
+	<template background-color="Bg" background-color-draw-style="filled" class="CViewContainer" mouse-enabled="true" name="view" opacity="1" origin="0, 0" size="688, 362" transparent="false" wants-focus="false">
 
 		<!-- ============ left column: the parameters ============ -->
 		<view class="CTextLabel" font="Title" font-color="Accent" origin="16, 8" size="390, 24" text-alignment="center" title="Spot Aligner" transparent="true"/>
@@ -138,6 +139,8 @@
 		</view>
 
 		<!-- ============ right column: the display ============ -->
+		<view class="CTextLabel" font="Label" font-color="Text" origin="16, 324" size="180, 18" title="L/R time difference" transparent="true"/>
+		<view class="CCheckBox" control-tag="DelayDifference" origin="200, 322" size="18, 18" transparent="true"/>
 		<view class="PanoramaView" origin="422, 16" size="250, 104"/>
 		<!-- Not seen, not clickable: these two carry the object's place in the image to
 		     the dome display, which reads their text. Nothing may read an edit field
@@ -196,7 +199,7 @@
 		<attributes Path="D:/VST3 Programming/SpotAligner/SpotAligner/resource/editor.uidesc" name="VST3Editor"/>
 		<attributes Grids="1x 1,5x 5,10x 10,12x 12,15x 15" name="UIGridController"/>
 		<attributes SelectedTemplate="view" name="UITemplateController"/>
-		<attributes EditViewScale="1" EditorSize="0, 0, 688, 336" Version="1" name="UIEditController"/>
+		<attributes EditViewScale="1" EditorSize="0, 0, 688, 362" Version="1" name="UIEditController"/>
 		<attributes name="UIAttributesController"/>
 		<attributes SelectedRow="7" name="UIViewCreatorDataSource"/>
 	</custom>

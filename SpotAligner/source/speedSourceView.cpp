@@ -117,20 +117,8 @@ int32_t groupOf (CView* view)
 	Temporary: remove together with its call site once the UI is settled. */
 void writeDiagnostics (int32_t mode, int32_t group, bool visible, bool focusDropped)
 {
-	const char* temp = std::getenv ("TEMP");
-	if (!temp)
-		return;
-
-	std::string path (temp);
-	path += "\\spotaligner_ui.log";
-
-	if (FILE* file = std::fopen (path.c_str (), "a"))
-	{
-		std::fprintf (file, "mode=%d group=%d visible=%d focus=%d\n", static_cast<int> (mode),
-		              static_cast<int> (group), visible ? 1 : 0, focusDropped ? 1 : 0);
-		std::fclose (file);
+		// no file logging in a released build
 	}
-}
 
 //------------------------------------------------------------------------
 class SpeedSourceView : public CViewContainer
