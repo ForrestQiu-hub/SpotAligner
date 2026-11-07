@@ -1,0 +1,115 @@
+name: macOS VST3
+
+# Builds the macOS VST 3 bundle from this source and nothing else: no AU, no AAX,
+# no installer, no .ico. The Windows build is unaffected by this workflow.
+#
+# Runs on every push to main that touches the plug-in, and on demand. The result
+# is uploaded as a workflow artifact and attached to a rolling pre-release called
+# "macos-latest", so it can be downloaded without signing in to GitHub.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "SpotAligner/source/**"
+      - "SpotAligner/resource/**"
+      - "SpotAligner/CMakeLists.txt"
+      - ".github/workflows/macos-vst3.yml"
+
+permissions:
+  contents: write
+
+env:
+  # Pin the SDK to the version this project was developed against. If the tag
+  # name does not exist, pick the right one from
+  # https://github.com/steinbergmedia/vst3sdk/tags and change it here.
+  VST3SDK_TAG: v3.8.1_build_84
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      # The project's CMakeLists looks for the SDK at <repo>/vst3sdk next to the
+      # SpotAligner folder, which is exactly where this puts it.
+      - name: Fetch the VST 3 SDK
+        run: |
+          git clone --depth 1 --branch "$VST3SDK_TAG" --recursive \
+            https://github.com/steinbergmedia/vst3sdk.git vst3sdk
+
+      # The SDK signs with "Apple Development" by default, which a runner does not
+      # have, so ask for ad hoc instead ("-"). The validator is switched off here
+      # and run as its own step so that a validator complaint cannot swallow the
+      # artifact; see below.
+      - name: Configure
+        run: |
+          cmake -G Xcode -B build-mac -S SpotAligner \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 \
+            -DSMTG_BUILD_UNIVERSAL_BINARY=OFF \
+            -DSMTG_CODE_SIGN_IDENTITY_MAC=- \
+            -DSMTG_RUN_VST_VALIDATOR=OFF \
+            -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=OFF \
+            -DSMTG_CREATE_PLUGIN_LINK=OFF
+
+      - name: Build
+        run: cmake --build build-mac --config Release --target SpotAligner
+
+      # Resources are added to the bundle after the link, so sign once more, at the
+      # end, to seal them. On Apple silicon a bundle that is not signed at all does
+      # not load; ad hoc is enough for that, but it is not a Developer ID.
+      - name: Sign ad hoc
+        run: |
+          B=build-mac/VST3/Release/SpotAligner.vst3
+          codesign --force --deep --sign - "$B"
+          codesign --verify --deep --strict --verbose=2 "$B"
+
+      - name: Inspect the bundle
+        run: |
+          B=build-mac/VST3/Release/SpotAligner.vst3
+          echo "--- tree ---"
+          find "$B" -maxdepth 3 | sort
+          echo "--- architectures ---"
+          lipo -info "$B/Contents/MacOS/SpotAligner"
+          echo "--- Info.plist ---"
+          plutil -p "$B/Contents/Info.plist"
+
+      # The SDK's own validator: loads the bundle, walks the component and the
+      # controller, and prints a report. Report only - a failure here is worth
+      # reading, not worth losing the artifact over.
+      - name: Run the SDK validator (report only)
+        continue-on-error: true
+        run: |
+          cmake --build build-mac --config Release --target validator
+          V=$(find build-mac -type f -name validator | head -n 1)
+          echo "validator: $V"
+          "$V" build-mac/VST3/Release/SpotAligner.vst3
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp -R build-mac/VST3/Release/SpotAligner.vst3 dist/
+          ditto -c -k --sequesterRsrc --keepParent \
+            dist/SpotAligner.vst3 SpotAligner-macos-vst3.zip
+          ls -l SpotAligner-macos-vst3.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SpotAligner-macos-vst3
+          path: SpotAligner-macos-vst3.zip
+
+      # A rolling pre-release keeps one stable, public download URL:
+      #   .../releases/download/macos-latest/SpotAligner-macos-vst3.zip
+      # The asset is replaced on every build (--clobber).
+      - name: Publish to the rolling pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view macos-latest > /dev/null 2>&1 || \
+            gh release create macos-latest --prerelease \
+              --title "macOS build (latest)" \
+              --notes "Built from ${GITHUB_SHA} by the macOS VST3 workflow."
+          gh release upload macos-latest SpotAligner-macos-vst3.zip --clobber

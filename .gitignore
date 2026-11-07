@@ -4,6 +4,10 @@ build/
 dist/
 */dist/
 
+# the VST 3 SDK checkout and the macOS build tree
+vst3sdk/
+build-mac/
+
 # the packaged downloads belong in a release, not in the repository
 *.zip
 *.exe
@@ -22,3 +26,9 @@ desktop.ini
 
 # the literature review is kept out of the repository
 文献综述/
+
+# the chat log transferred out of the session store
+_chat-log/
+
+# readable transcript of the old session, kept as an archive
+开发会话记录-SpotAligner.txt

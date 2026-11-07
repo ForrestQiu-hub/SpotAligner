@@ -15,7 +15,10 @@ if(NOT SMTG_CREATE_PLUGIN_LINK)
     set(SMTG_CREATE_PLUGIN_LINK OFF CACHE BOOL "Create symbolic link for each Plug-in" FORCE)
 endif()
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "")
+# macOS: an arm64 slice cannot target 10.13, so the default is 11.0, which is the
+# lowest deployment target a universal binary can carry. An Intel-only build may go
+# lower: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64
+set(CMAKE_OSX_DEPLOYMENT_TARGET 11.0 CACHE STRING "")
 
 # Where the VST 3 SDK lives, in this order of preference:
 #   1. -DSMTG_VST3_SDK_ROOT=<path to vst3sdk> on the cmake command line
