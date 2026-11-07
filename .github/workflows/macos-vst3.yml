@@ -28,7 +28,9 @@ env:
 
 jobs:
   build:
-    runs-on: macos-14
+    # macos-14 was retired by GitHub, which cancels the job before it starts
+    # ("the configuration ... is not supported"). Move this forward as images retire.
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
