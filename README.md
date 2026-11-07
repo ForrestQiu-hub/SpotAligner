@@ -64,6 +64,8 @@ xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/VST3/SpotAligner.vst3
 
 There is no `Common Files` path on macOS - that one belongs to Windows - and the VST 2 `VST/` folder does not take `.vst3` either.
 
+**Do not double click `SpotAligner.vst3`.** It is a plug-in bundle, not an application: double clicking does nothing useful, and on older builds it is what raises "Apple cannot verify" - Gatekeeper blocking what it thinks is a program you asked to launch, not a fault in the plug-in.
+
 Then let the host scan for plug-ins. It appears as **Spot Aligner** by **Forrest's Plug-ins**.
 
 1. Put it on the **spot track only**, never on the main pair.

@@ -69,6 +69,8 @@ xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/VST3/SpotAligner.vst3
 
 macOS 上**没有** `Common Files` 那条路径,那是 Windows 的;VST2 的 `VST/` 目录也不收 `.vst3`。
 
+**不要双击 `SpotAligner.vst3`。** 它是插件包,不是应用程序:双击没有意义,早期构建的包还会因此弹出"Apple 无法验证"——那是 Gatekeeper 在拦一个它以为你要启动的程序,不是插件有问题。
+
 然后让宿主重新扫描插件;列表里显示为 **Spot Aligner**,厂商 **Forrest's Plug-ins**。
 
 **基本用法**:

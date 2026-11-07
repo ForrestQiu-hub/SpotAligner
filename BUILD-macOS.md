@@ -63,7 +63,7 @@ ad-hoc 签名(`codesign -s -`),没有 Developer ID,也没有公证。自己拷�
 
 | 文件 | 改动 |
 |---|---|
-| `SpotAligner/CMakeLists.txt` | `CMAKE_OSX_DEPLOYMENT_TARGET` 10.13 → **11.0**(arm64 不能低于 11.0);纯 Intel 包用 `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64` 单独编 |
+| `SpotAligner/CMakeLists.txt` | `CMAKE_OSX_DEPLOYMENT_TARGET` 10.13 → **11.0**(arm64 不能低于 11.0);纯 Intel 包用 `-DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 -DCMAKE_OSX_ARCHITECTURES=x86_64` 单独编。另:构建后把 `CFBundlePackageType` 从 `APPL` 改成 `BNDL` 并重新 ad-hoc 签名 |
 | `.github/workflows/macos-vst3.yml` | 新增 |
 | `.gitignore` | 加 `vst3sdk/`、`build-mac/` |
 
@@ -88,7 +88,9 @@ ad-hoc 签名(`codesign -s -`),没有 Developer ID,也没有公证。自己拷�
   不等于 Cubase / Studio One 里能扫出来。
 - **界面字体**:`resource/editor.uidesc` 用了 `Arial`(macOS 有)和 `Noto Sans SC`(macOS 默认没有)→
   标题会回退到系统字体,字号不变。要完全一致就把那行改成 `Arial` 或 `Helvetica`。
-- **`CFBundlePackageType` 是 `APPL`,标准 VST3 一般是 `BNDL`**。后果可能只是 Finder 把它显示成一个应用;
-  多数宿主直接加载 `Contents/MacOS` 里的二进制,大概率不影响。真机验证过再决定要不要给 SDK 传 Info.plist 模板。
+- **`CFBundlePackageType` 已由 `APPL` 改成 `BNDL`**:Xcode 生成器默认把它写成 APPL,Finder 于是把 `.vst3`
+  当成应用程序——双击就会请 Gatekeeper 去启动一个未公证的程序,弹出"Apple 无法验证"。
+  现在 `CMakeLists.txt` 在构建后修改这一键并重新 ad-hoc 签名(`Info.plist` 属于签名范围),workflow 里也加了断言,
+  不是 BNDL 就直接红。**2026-11-07 之前构建的那个包仍然是 APPL,要以新包为准。**
 - **`macos-15` 以后也会被下线**(`macos-14` 就是这样被取消的)。届时改 `.github/workflows/macos-vst3.yml`
   里 `runs-on` 一行即可;判断方法:job 的 check-run annotation 会写 `The configuration '...' is not supported`。

@@ -119,6 +119,21 @@ if(SMTG_MAC)
         "/Applications/VST3PluginTestHost.app"
         "--pluginfolder;$(BUILT_PRODUCTS_DIR)"
     )
+
+    # A VST 3 bundle is a plug-in, not an application. The Xcode generator writes
+    # CFBundlePackageType = APPL into the Info.plist it generates, which makes
+    # Finder treat the bundle as an app: double clicking it asks Gatekeeper to
+    # launch an unnotarised program, and the user gets "Apple cannot verify this".
+    # Nothing ever needs to launch it, so the key becomes BNDL. Info.plist is part
+    # of the code signature, so the bundle is sealed again right after the edit -
+    # this also covers builds made with generators that do not sign at all.
+    add_custom_command(TARGET SpotAligner POST_BUILD
+        COMMAND /usr/libexec/PlistBuddy -c "Set :CFBundlePackageType BNDL"
+                "$<TARGET_BUNDLE_DIR:SpotAligner>/Contents/Info.plist"
+        COMMAND codesign --force --deep --sign - "$<TARGET_BUNDLE_DIR:SpotAligner>"
+        COMMENT "[Spot Aligner] CFBundlePackageType = BNDL, bundle re-signed ad hoc"
+        VERBATIM
+    )
 elseif(SMTG_WIN)
     target_sources(SpotAligner PRIVATE 
         resource/win32resource.rc

@@ -78,6 +78,13 @@ jobs:
           lipo -info "$B/Contents/MacOS/SpotAligner"
           echo "--- Info.plist ---"
           plutil -p "$B/Contents/Info.plist"
+          echo "--- package type ---"
+          P=$(/usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$B/Contents/Info.plist")
+          echo "CFBundlePackageType = $P"
+          if [ "$P" != "BNDL" ]; then
+            echo "::error::CFBundlePackageType is $P, expected BNDL (see CMakeLists.txt)"
+            exit 1
+          fi
 
       # The SDK's own validator: loads the bundle, walks the component and the
       # controller, and prints a report. Report only - a failure here is worth
