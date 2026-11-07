@@ -111,28 +111,23 @@ target_link_libraries(SpotAligner
 smtg_target_configure_version_file(SpotAligner)
 
 if(SMTG_MAC)
+    # A VST 3 bundle is a plug-in, not an application. Xcode's generated Info.plist
+    # says CFBundlePackageType = APPL, which makes Finder treat the bundle as an app:
+    # double clicking asks Gatekeeper to launch an unnotarised program and the user
+    # sees "Apple cannot verify this". resource/Info.plist.in says BNDL instead, and
+    # because it is handed to Xcode before anything is built, no post-build surgery
+    # (and no re-signing) is needed.
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/resource/Info.plist.in"
+                   "${CMAKE_CURRENT_BINARY_DIR}/Info.plist" @ONLY)
+
     smtg_target_set_bundle(SpotAligner
         BUNDLE_IDENTIFIER com.Forrest.SpotAligner
         COMPANY_NAME "Forrest's Plug-ins"
+        INFOPLIST "${CMAKE_CURRENT_BINARY_DIR}/Info.plist"
     )
     smtg_target_set_debug_executable(SpotAligner
         "/Applications/VST3PluginTestHost.app"
         "--pluginfolder;$(BUILT_PRODUCTS_DIR)"
-    )
-
-    # A VST 3 bundle is a plug-in, not an application. The Xcode generator writes
-    # CFBundlePackageType = APPL into the Info.plist it generates, which makes
-    # Finder treat the bundle as an app: double clicking it asks Gatekeeper to
-    # launch an unnotarised program, and the user gets "Apple cannot verify this".
-    # Nothing ever needs to launch it, so the key becomes BNDL. Info.plist is part
-    # of the code signature, so the bundle is sealed again right after the edit -
-    # this also covers builds made with generators that do not sign at all.
-    add_custom_command(TARGET SpotAligner POST_BUILD
-        COMMAND /usr/libexec/PlistBuddy -c "Set :CFBundlePackageType BNDL"
-                "$<TARGET_BUNDLE_DIR:SpotAligner>/Contents/Info.plist"
-        COMMAND codesign --force --deep --sign - "$<TARGET_BUNDLE_DIR:SpotAligner>"
-        COMMENT "[Spot Aligner] CFBundlePackageType = BNDL, bundle re-signed ad hoc"
-        VERBATIM
     )
 elseif(SMTG_WIN)
     target_sources(SpotAligner PRIVATE 

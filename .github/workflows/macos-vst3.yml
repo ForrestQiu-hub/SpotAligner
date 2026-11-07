@@ -60,6 +60,17 @@ jobs:
       - name: Build
         run: cmake --build build-mac --config Release --target SpotAligner
 
+      # Belt and braces: resource/Info.plist.in should already say BNDL, but if
+      # Xcode ignores it the bundle would be an "application" again, so force the
+      # key here - before signing, since Info.plist is part of the seal.
+      - name: Make the bundle a plug-in, not an application
+        run: |
+          B=build-mac/VST3/Release/SpotAligner.vst3
+          P="$B/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundlePackageType BNDL" "$P" \
+            || /usr/libexec/PlistBuddy -c "Add :CFBundlePackageType string BNDL" "$P"
+          /usr/libexec/PlistBuddy -c "Print :CFBundlePackageType" "$P"
+
       # Resources are added to the bundle after the link, so sign once more, at the
       # end, to seal them. On Apple silicon a bundle that is not signed at all does
       # not load; ad hoc is enough for that, but it is not a Developer ID.
