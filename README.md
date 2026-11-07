@@ -1,8 +1,8 @@
 # Spot Aligner
 
-A spot microphone **aligner and placer** for classical recording. Windows x64 VST3, free software (GPLv3).
+A spot microphone **aligner and placer** for classical recording. Windows x64 and macOS (universal) VST3, free software (GPLv3).
 
-**Download:** [SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip) · [all releases](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **Feedback:** qiuzhenyan4135@163.com
+**Download:** [SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip) (Windows) · [SpotAligner-macos-vst3.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/download/macos-latest/SpotAligner-macos-vst3.zip) (macOS) · [all releases](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **Feedback:** qiuzhenyan4135@163.com
 **中文说明:** [README.zh-CN.md](README.zh-CN.md) · The package also carries the README in English, Chinese, German, French and Japanese.
 
 ---
@@ -34,19 +34,35 @@ The model is not invented here: the equivalence of time and level differences, t
 
 ## Requirements
 
-* **Windows** 10 or 11, 64 bit; any VST3 host (REAPER, Nuendo, Cubase, Studio One, Bitwig, WaveLab).
+* **Windows** 10 or 11, 64 bit, or **macOS 11 or newer** (Intel and Apple silicon; the bundle is universal). Any VST3 host (REAPER, Nuendo, Cubase, Studio One, Bitwig, WaveLab).
 * **IT MUST GO ON A STEREO TRACK.** The plug-in carries one mono object - a spot microphone - and places it in the stereo image, so both channels are used: the two input channels are summed into that one object, which is then distributed by the geometry. When the track cannot carry two channels nothing is processed (the object passes through) and the panel says so; `Track output: 2 channels` means the track is right.
-* **Pro Tools** loads AAX only and refuses unsigned AAX, so use a wrapper host (Blue Cat PatchWork, DDMF Metaplugin, or the free Modalics Plugin Buddy) to run this VST3 inside it. A macOS / AU build is planned - the AU wrappers ship with the VST 3 SDK and need no code signing.
+* **Pro Tools** loads AAX only and refuses unsigned AAX, so use a wrapper host (Blue Cat PatchWork, DDMF Metaplugin, or the free Modalics Plugin Buddy) to run this VST3 inside it. A macOS VST 3 build is provided (see below); **AU is still to come**, so Logic and GarageBand cannot load it yet.
 * The files are not code signed, so Windows may ask once when the plug-in is first scanned: choose "More information" and "Run anyway".
+* The macOS bundle is **ad-hoc signed and not notarised**, so clear the quarantine flag before the host loads it (see below). The warning says the developer cannot be verified; it does not mean the file is infected.
 
 ## How to use it
 
-**Install:** run `Install.bat` (it picks the right folder for the rights it has), or copy the `SpotAligner.vst3` folder into
+**Install on Windows:** run `Install.bat` (it picks the right folder for the rights it has), or copy the `SpotAligner.vst3` folder into
 
 ```
 C:\Program Files\Common Files\VST3\        all users, administrator
 %LOCALAPPDATA%\Programs\Common\VST3\       this user only
 ```
+
+**Install on macOS:** copy `SpotAligner.vst3` into
+
+```
+/Library/Audio/Plug-Ins/VST3/       all users, administrator
+~/Library/Audio/Plug-Ins/VST3/      this user only
+```
+
+then clear the quarantine flag (not notarised):
+
+```
+xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/VST3/SpotAligner.vst3
+```
+
+There is no `Common Files` path on macOS - that one belongs to Windows - and the VST 2 `VST/` folder does not take `.vst3` either.
 
 Then let the host scan for plug-ins. It appears as **Spot Aligner** by **Forrest's Plug-ins**.
 
@@ -71,6 +87,6 @@ Note that with it off, **Angle is still a geometry input, not a free pan control
 ---
 
 Built with the VST 3 SDK 3.8.1. VST is a trademark of Steinberg Media Technologies GmbH.
-From source: CMake 3.14+ and Visual Studio 2022 or newer; the physics lives in four dependency-free headers (`spotPanner.h`, `formatRules.h`, `panoramaGeometry.h`, `soundSpeed.h`) and every rule in them is covered by headless tests that need neither a host nor a GUI.
+From source: CMake 3.14+ and Visual Studio 2022 or newer on Windows; the macOS build needs only the Xcode command line tools and can be produced on a GitHub Actions `macos-15` runner without a Mac - see [BUILD-macOS.md](BUILD-macOS.md). The physics lives in four dependency-free headers (`spotPanner.h`, `formatRules.h`, `panoramaGeometry.h`, `soundSpeed.h`) and every rule in them is covered by headless tests that need neither a host nor a GUI.
 
 **Author:** Zhenyan Qiu, School of Physics, Nankai University · **Licence:** [GPLv3](LICENSE) · Development history: [ITERATION-REPORT.txt](ITERATION-REPORT.txt)

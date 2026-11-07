@@ -1,12 +1,12 @@
-﻿# Spot Aligner(中文说明)
+# Spot Aligner(中文说明)
 
 > English: [README.md](README.md) · 安装包内另有五语 README(英/中/德/法/日)。
 
 ---
 
-面向古典录音的**点话筒对齐与摆位**插件,Windows x64 VST3,免费软件(GPLv3)。
+面向古典录音的**点话筒对齐与摆位**插件,Windows x64 与 macOS(universal)VST3,免费软件(GPLv3)。
 
-**下载**:[SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip) · [全部版本](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **反馈**:qiuzhenyan4135@163.com
+**下载**:[SpotAligner-1.0.0-win64.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/latest/download/SpotAligner-1.0.0-win64.zip)(Windows) · [SpotAligner-macos-vst3.zip](https://github.com/ForrestQiu-hub/SpotAligner/releases/download/macos-latest/SpotAligner-macos-vst3.zip)(macOS) · [全部版本](https://github.com/ForrestQiu-hub/SpotAligner/releases) · **反馈**:qiuzhenyan4135@163.com
 
 ---
 
@@ -39,19 +39,35 @@ Spot Aligner 把这个位置算出来并施加于信号:
 
 ## 要求
 
-* **Windows** 10 或 11,64 位;任何 VST3 宿主(REAPER、Nuendo、Cubase、Studio One、Bitwig、WaveLab 等)。
+* **Windows** 10 或 11,64 位;或 **macOS 11 或更新版本**(Intel 与 Apple Silicon 都支持,包内是 universal 二进制)。任何 VST3 宿主(REAPER、Nuendo、Cubase、Studio One、Bitwig、WaveLab 等)。
 * **必须插在立体声轨道上。** 插件承载"一个单声道对象"(一支点话筒)并把它摆进立体声像场,两个声道都会用到:输入两路先相加成这一个对象,再按几何分配左右。轨道给不出两个声道时插件**不做任何处理**(对象原样通过)并在面板提示;显示 `Track output: 2 channels` 就说明轨道是对的。
-* **Pro Tools** 只加载 AAX,且拒绝未签名的 AAX。用包装宿主(Blue Cat PatchWork、DDMF Metaplugin,或免费的 Modalics Plugin Buddy)即可在 Pro Tools 里运行本插件。macOS / AU 版本在计划中 —— AU 不需要任何签名,只差一台 Mac。
+* **Pro Tools** 只加载 AAX,且拒绝未签名的 AAX。用包装宿主(Blue Cat PatchWork、DDMF Metaplugin,或免费的 Modalics Plugin Buddy)即可在 Pro Tools 里运行本插件。**AU 版本尚未提供** —— Logic 与 GarageBand 只认 AU,暂时用不了;macOS 的 VST3 版已发布(见下)。
 * 未做代码签名,首次扫描时 Windows 可能提示一次:选"更多信息"→"仍要运行"。
+* macOS 版做了 **ad-hoc 签名、没有 Apple 公证**,首次加载前要清掉隔离属性(见下文),否则"无法验证开发者"会把插件挡在外面。这不是病毒提示。
 
 ## 用法
 
-**安装**:双击 `Install.bat`(自动判断权限:能写 Program Files 就装给所有用户,否则装给当前用户),或把 `SpotAligner.vst3` 文件夹复制到:
+**安装(Windows)**:双击 `Install.bat`(自动判断权限:能写 Program Files 就装给所有用户,否则装给当前用户),或把 `SpotAligner.vst3` 文件夹复制到:
 
 ```
 C:\Program Files\Common Files\VST3\        所有用户(需管理员)
 %LOCALAPPDATA%\Programs\Common\VST3\       仅当前用户
 ```
+
+**安装(macOS)**:把 `SpotAligner.vst3` 复制到
+
+```
+/Library/Audio/Plug-Ins/VST3/        所有用户(需管理员)
+~/Library/Audio/Plug-Ins/VST3/       仅当前用户
+```
+
+然后清掉隔离属性(未公证,不清可能加载失败):
+
+```
+xattr -dr com.apple.quarantine /Library/Audio/Plug-Ins/VST3/SpotAligner.vst3
+```
+
+macOS 上**没有** `Common Files` 那条路径,那是 Windows 的;VST2 的 `VST/` 目录也不收 `.vst3`。
 
 然后让宿主重新扫描插件;列表里显示为 **Spot Aligner**,厂商 **Forrest's Plug-ins**。
 
@@ -75,7 +91,7 @@ C:\Program Files\Common Files\VST3\        所有用户(需管理员)
 
 ---
 
-从源码构建需要 CMake 3.14+、Visual Studio 2022 或更新版本、以及 [VST 3 SDK](https://github.com/steinbergmedia/vst3sdk) 3.8.x;物理部分位于四个无依赖头文件中(`spotPanner.h`、`formatRules.h`、`panoramaGeometry.h`、`soundSpeed.h`),全部规则由不需要宿主与界面的无头测试覆盖。
+从源码构建需要 CMake 3.14+、Visual Studio 2022 或更新版本、以及 [VST 3 SDK](https://github.com/steinbergmedia/vst3sdk) 3.8.x;macOS 只需 Xcode 命令行工具,没有 Mac 也能在 GitHub Actions 的 `macos-15` 上出包,具体见 [BUILD-macOS.md](BUILD-macOS.md)。物理部分位于四个无依赖头文件中(`spotPanner.h`、`formatRules.h`、`panoramaGeometry.h`、`soundSpeed.h`),全部规则由不需要宿主与界面的无头测试覆盖。
 
 构建使用 VST 3 SDK 3.8.1。VST 是 Steinberg Media Technologies GmbH 的商标。
 

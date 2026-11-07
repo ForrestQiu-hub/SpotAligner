@@ -69,9 +69,26 @@ ad-hoc 签名(`codesign -s -`),没有 Developer ID,也没有公证。自己拷�
 
 源码一行没动。**没做**:AU、AAX、签名证书、公证、Mac 安装器。
 
-## 六、还没验证的
+## 六、已经验证的 / 还没验证的
 
-- **首次 CI 运行没跑过**:我在 Windows 上,没有 macOS 工具链,只能保证 CMake 变量和 SDK 的用法对得上,跑一次才知道。
+**已验证(2026-11-07,run #3,3 分 42 秒,11 个步骤全绿)**
+
+- GitHub Actions 的 `macos-15` 上出包成功;产物挂在预发布 `macos-latest`:
+  `https://github.com/ForrestQiu-hub/SpotAligner/releases/download/macos-latest/SpotAligner-macos-vst3.zip`
+- 二进制是 **universal**:fat 头两个切片,x86_64 2,088,288 字节 + arm64 2,005,824 字节;
+- bundle 结构:`Contents/MacOS/SpotAligner`、`Info.plist`(`CFBundleExecutable=SpotAligner`、
+  `com.Forrest.SpotAligner`、`LSMinimumSystemVersion 11.0`、Xcode 16.4 / SDK macosx15.5)、
+  `Resources/editor.uidesc`、`moduleinfo.json`、两张 Snapshot 都在;
+- 签名:内嵌 CodeDirectory + `_CodeSignature/CodeResources`,CI 里 `codesign --verify --deep --strict` 通过;
+- SDK validator 跑过一遍,没有报错。
+
+**还没验证**
+
+- **宿主里真实加载、界面打开、参数存取**:需要有人在 Mac 上过一遍。二进制格式对、签名有效,
+  不等于 Cubase / Studio One 里能扫出来。
 - **界面字体**:`resource/editor.uidesc` 用了 `Arial`(macOS 有)和 `Noto Sans SC`(macOS 默认没有)→
   标题会回退到系统字体,字号不变。要完全一致就把那行改成 `Arial` 或 `Helvetica`。
-- **宿主里真实加载、界面打开、参数存取**:需要有人在 Mac 上过一遍。
+- **`CFBundlePackageType` 是 `APPL`,标准 VST3 一般是 `BNDL`**。后果可能只是 Finder 把它显示成一个应用;
+  多数宿主直接加载 `Contents/MacOS` 里的二进制,大概率不影响。真机验证过再决定要不要给 SDK 传 Info.plist 模板。
+- **`macos-15` 以后也会被下线**(`macos-14` 就是这样被取消的)。届时改 `.github/workflows/macos-vst3.yml`
+  里 `runs-on` 一行即可;判断方法:job 的 check-run annotation 会写 `The configuration '...' is not supported`。
